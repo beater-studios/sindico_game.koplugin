@@ -93,8 +93,22 @@ function Engine:difficulty()
     return 1 + (self.state.mandate - 1) * Engine.DIFFICULTY_STEP
 end
 
+Engine.MANDATE_MONTHS = Engine.MANDATE_DAYS / 30
+
 function Engine:month()
-    return math.floor(self.state.day / 30) + 1
+    return math.min(Engine.MANDATE_MONTHS, math.floor(self.state.day / 30) + 1)
+end
+
+-- Mandates fully served. Winning the last election ends the game without
+-- starting a new mandate, so that one is counted through `won_all`.
+function Engine.completed_mandates(state)
+    return state.mandate - 1 + (state.won_all and 1 or 0)
+end
+
+-- Days in office. The election card may push the day past the end of the
+-- mandate, so each mandate counts at most MANDATE_DAYS.
+function Engine.total_days(state)
+    return (state.mandate - 1) * Engine.MANDATE_DAYS + math.min(state.day, Engine.MANDATE_DAYS)
 end
 
 function Engine:is_eligible(card)
@@ -157,7 +171,11 @@ function Engine:draw()
         pool, total = self:pool(nil)
     end
     if #pool == 0 then
-        s.used = {}
+        -- Out of cards: let regular cards repeat, but never the mandatory ones.
+        for id in pairs(s.used) do
+            local card = self.content.by_id[id]
+            if not (card and card.at_day) then s.used[id] = nil end
+        end
         pool, total = self:pool(nil)
     end
     if #pool == 0 then return nil end
@@ -232,6 +250,7 @@ function Engine:resolve_election()
         return self:find_ending_for("election_lost")
     end
     if s.mandate >= Engine.MAX_MANDATES then
+        s.won_all = true
         return self:find_ending_for("all_mandates")
     end
     self:next_mandate()
@@ -259,7 +278,7 @@ function Engine:choose(side)
     s.used_ever[card.id] = true
     s.last_char = card.char
     s.decisions = s.decisions + 1
-    s.day = s.day + (card.days or Engine.DEFAULT_CARD_DAYS)
+    s.day = s.day + (choice.days or card.days or Engine.DEFAULT_CARD_DAYS)
     s.last = { result = choice.result, deltas = deltas }
 
     local ending = choice.ending or self:zero_ending()
@@ -290,9 +309,9 @@ function Engine:record_ending(stats)
     stats.games = stats.games + 1
     stats.decisions = stats.decisions + s.decisions
     stats.endings[s.ending] = (stats.endings[s.ending] or 0) + 1
-    local won = s.mandate - 1
+    local won = Engine.completed_mandates(s)
     if won > stats.best_mandates then stats.best_mandates = won end
-    local days = won * Engine.MANDATE_DAYS + s.day
+    local days = Engine.total_days(s)
     if days > stats.best_days then stats.best_days = days end
     return stats
 end
