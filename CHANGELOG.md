@@ -1,6 +1,6 @@
 # Histórico de versões
 
-## [Não publicado]
+## [1.0.1]
 
 - Vencer os 5 mandatos agora conta 5 mandatos completos na tela de final e no recorde, não 4.
 - Os dias da partida param em 720 por mandato, e o mês exibido não passa de 24.
