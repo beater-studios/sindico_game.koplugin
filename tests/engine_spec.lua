@@ -145,6 +145,39 @@ do
     e.state.meters.residents = 90
     e:choose("left")
     check("vence todos os mandatos", e.state.ending == "all")
+    check("conta o último mandato", Engine.completed_mandates(e.state) == Engine.MAX_MANDATES)
+    local stats = e:record_ending(Engine.new_stats())
+    check("recorde com todos os mandatos", stats.best_mandates == Engine.MAX_MANDATES)
+end
+
+do
+    local e = make({ card("election", { at_day = 0, left = choice({ resolve = "election" }), right = choice({ resolve = "election" }) }) })
+    e.state.mandate = 3
+    e.state.day = Engine.MANDATE_DAYS
+    e.state.meters.residents = 30
+    e:choose("left")
+    check("derrota não conta o mandato", Engine.completed_mandates(e.state) == 2)
+    check("dias param no fim do mandato", Engine.total_days(e.state) == 3 * Engine.MANDATE_DAYS)
+    check("mês limitado ao mandato", e:month() == Engine.MANDATE_MONTHS)
+end
+
+do
+    local e = make({ card("a", { days = 20, left = choice({ days = 30 }) }), card("b"), card("c") })
+    e:choose("left")
+    check("dias da escolha", e.state.day == 30)
+    e.state.current = "a"
+    e.state.used.a = nil
+    e:choose("right")
+    check("dias da carta", e.state.day == 50)
+end
+
+do
+    local e = make({ card("a"), card("fixed", { at_day = 12 }) })
+    e:choose("left")
+    check("at_day aparece", e.state.current == "fixed")
+    e:choose("left")
+    e:choose("left")
+    check("sem cartas, at_day não repete", e.state.current == "a")
 end
 
 do
