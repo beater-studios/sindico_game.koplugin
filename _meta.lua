@@ -1,7 +1,7 @@
 return {
     fullname = "O Síndico",
     description = [[Você foi eleito síndico. Sentimos muito. Jogo de decisões por cartas para o KOReader. Por Beater Studios.]],
-    version = "1.0.0",
+    version = "1.0.1",
     author = "Beater Studios",
     copyright = "Copyright (C) 2026 Beater Studios",
     website = "https://beaterstudios.com/",

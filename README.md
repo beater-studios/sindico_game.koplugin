@@ -19,7 +19,7 @@ Um jogo da [Beater Studios](https://beaterstudios.com/).
 - **Quatro medidores:** Moradores, Caixa, Prédio e Paciência. Se qualquer um chegar a 0, o jogo acaba, cada um com seu final.
 - **Mandatos:** há prestação de contas no meio do mandato e eleição no fim. A cada reeleição, fica mais difícil. Vencer 5 mandatos leva ao final de síndico vitalício.
 - **Memória:** suas decisões liberam cartas futuras e voltam a cobrar a conta meses depois.
-- **Conteúdo:** 266 cartas, 18 personagens, 15 arcos e 25 finais para descobrir, guardados numa galeria.
+- **Conteúdo:** 266 cartas, 18 personagens, 15 arcos e 24 finais para descobrir, guardados numa galeria.
 - **Ata:** o registro das suas decisões marcantes, que resume a história de cada partida.
 - **Sem internet:** funciona offline e não coleta dados. O progresso é salvo a cada decisão.
 

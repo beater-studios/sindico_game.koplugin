@@ -350,7 +350,7 @@ function Screen:show_card(refresh)
         CenterContainer:new{
             dimen = Geom:new{ w = self.text_width - 2 * side_w, h = footer_h },
             TextWidget:new{
-                text = string.format("Mandato %d, mês %d de 24", s.mandate, math.min(24, self.engine:month())),
+                text = string.format("Mandato %d, mês %d de %d", s.mandate, self.engine:month(), Engine.MANDATE_MONTHS),
                 face = Font:getFace("cfont", 14),
             },
         },
@@ -384,7 +384,10 @@ function Screen:show_ending(state)
     self.mode = "ending"
     local s = state or self.engine.state
     local ending = self.engine.content.ending_by_id[s.ending] or { title = "Fim", text = "" }
-    local good = ending.good or ending.trigger == "all_mandates"
+    local good = ending.good
+    if good == nil then
+        good = ending.trigger == nil or ending.trigger == "all_mandates"
+    end
     local group = VerticalGroup:new{ align = "center" }
     local image_h = math.floor(self.height * 0.27)
     group[#group + 1] = VerticalSpan:new{ width = self:scaled(18) }
@@ -409,10 +412,10 @@ function Screen:show_ending(state)
         alignment = "center",
         height_overflow_show_ellipsis = true,
     })
-    local won = s.mandate - 1
+    local won = Engine.completed_mandates(s)
     group[#group + 1] = self:centered(self:text_line(
         string.format("%d %s completos, %d dias, %d decisões", won, won == 1 and "mandato" or "mandatos",
-            won * Engine.MANDATE_DAYS + s.day, s.decisions), "cfont", 15))
+            Engine.total_days(s), s.decisions), "cfont", 15))
     group[#group + 1] = VerticalSpan:new{ width = self:scaled(12) }
     group[#group + 1] = self:centered(self:menu_button("Ler a Ata", function()
         self:show_minutes(s, function() self:show_ending(s) end)
@@ -629,10 +632,12 @@ function Screen:show_minutes(state, back)
 end
 
 function Screen:show_gallery()
-    local endings = self.engine.content.endings
-    local items, found = {}, 0
-    for _, ending in ipairs(endings) do
+    local items, found, total = {}, 0, 0
+    for _, ending in ipairs(self.engine.content.endings) do
         local count = self.stats.endings[ending.id]
+        if count or ending.trigger ~= "no_cards" then
+            total = total + 1
+        end
         if count then
             found = found + 1
             items[#items + 1] = {
@@ -642,7 +647,7 @@ function Screen:show_gallery()
             }
         end
     end
-    local missing = #endings - found
+    local missing = total - found
     if missing > 0 then
         items[#items + 1] = {
             muted = true,
@@ -653,7 +658,7 @@ function Screen:show_gallery()
     self:show_list{
         title = "Galeria de Finais",
         summary = string.format("%d de %d finais, %d partidas, recorde de %d %s",
-            found, #endings, self.stats.games, self.stats.best_mandates,
+            found, total, self.stats.games, self.stats.best_mandates,
             self.stats.best_mandates == 1 and "mandato" or "mandatos"),
         items = items,
         back = function() self:show_title() end,
