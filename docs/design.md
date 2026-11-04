@@ -37,7 +37,7 @@ Você acaba de ser eleito síndico do Edifício Primavera, um prédio de 12 anda
 - **Memória:** decisões marcam fatos (flags) que liberam cartas futuras e agendam consequências, às vezes meses depois.
 - **Ata:** registro das decisões marcantes (o campo `minutes` das escolhas, cerca de um quarto delas), com mandato e mês. Dá para ler durante o jogo, pelo rodapé da carta, e na tela de final. É o resumo da história da partida.
 - **Progresso:** o jogo salva a cada decisão em `koreader/settings/sindico_game.lua`, com a partida e os recordes. Ao reabrir, o botão Continuar retoma de onde parou.
-- **Galeria:** os finais descobertos ficam guardados entre partidas, junto com os recordes.
+- **Galeria:** os finais descobertos ficam guardados entre partidas, junto com os recordes. O recorde conta os mandatos completos, incluindo o último numa vitória, e os dias de cada mandato param em 720.
 
 ## Formato das cartas
 
@@ -58,6 +58,7 @@ Os decks ficam em `data/decks/` como tabelas Lua puras, carregadas em ambiente i
         schedule = { card = "egg_in_elevator", days = 60 }, -- consequência agendada (opcional)
         minutes = "Multou o criador de galinhas do 402.",  -- entra na ata (opcional)
         ending = "ending_id",                               -- encerra o jogo (opcional)
+        days = 30,                                          -- dias que esta escolha consome (opcional, vale mais que o da carta)
     },
     right = { label = "Conversar antes", result = "...", effects = { patience = -8 } },
     requires = {                    -- opcional
@@ -83,6 +84,8 @@ Uma carta aparece no máximo uma vez por mandato. A carta de eleição usa `reso
 { id = "bankruptcy", trigger = "zero:funds", title = "...", text = "...", requires = { flags = {...}, not_flags = {...} } }
 ```
 
+A tela de final mostra o prédio inteiro nos finais sem `trigger` e em `all_mandates`, e o prédio rachado nos demais. `good = true` ou `good = false` muda isso para um final específico. O final `no_cards` só entra na contagem da galeria depois de alcançado.
+
 `trigger` é um de `zero:residents`, `zero:funds`, `zero:building`, `zero:patience`, `election_lost`, `all_mandates`, `no_cards`, ou nenhum (quando o final só é alcançado por `ending` numa escolha). Para o mesmo gatilho, vale o primeiro da lista cujos requisitos batem, então os específicos vêm antes do genérico.
 
 ## Interface
@@ -99,7 +102,7 @@ Todas rodam a partir da raiz do repositório.
 
 Só com `luajit` (são as que rodam na CI):
 
-- `luajit tools/validate.lua`: confere referências, limites de texto e alcançabilidade.
+- `luajit tools/validate.lua`: confere referências, limites de texto, alcançabilidade, chaves desconhecidas (um erro de digitação como `min_day` seria ignorado pelo motor), números inteiros, as cartas de eleição e os retratos dos personagens.
 - `luajit tools/simulate.lua [partidas]`: joga milhares de partidas com escolhas aleatórias e mostra duração, finais e cartas nunca vistas.
 - `luajit tests/engine_spec.lua`: testes do motor.
 
@@ -125,13 +128,14 @@ O emulador não mostra o que é próprio do e-ink nem a velocidade do aparelho: 
 
 ## Conteúdo
 
-266 cartas em 8 decks (`assembly`, `residents`, `repairs`, `money`, `front_desk`, `arcs`, `meters`, `veteran`), 18 personagens, 15 arcos com consequências agendadas e 25 finais. Retratos, ícones e o prédio são desenhados por código em `tools/make_art.py`.
+266 cartas em 8 decks (`assembly`, `residents`, `repairs`, `money`, `front_desk`, `arcs`, `meters`, `veteran`), 18 personagens, 15 arcos com consequências agendadas e 25 finais, dos quais 24 contam na galeria. Retratos, ícones e o prédio são desenhados por código em `tools/make_art.py`.
 
 Simulação com 5.000 partidas: um jogador aleatório dura cerca de 38 decisões (mediana) e raramente passa do primeiro mandato; um jogador que cuida dos medidores chega em geral ao 4º ou 5º mandato e vence todos em cerca de 11% das partidas. O final de `no_cards` é só rede de segurança e não aparece na prática.
 
 ## Cuidados ao escrever cartas
 
 - Cartas `at_day` disparam em sequência depois que uma variante é usada, porque o motor só marca a carta específica. Variantes de uma mesma assembleia usam uma flag própria, ligada na prestação de contas e limpa na eleição.
+- Se não houver mais cartas elegíveis, o motor libera de novo as cartas comuns já usadas no mandato, mas nunca as `at_day`.
 - A fila de `schedule` é zerada na reeleição. Cartas que abrem arcos têm `day_max` e `once_ever` para o desfecho caber no mandato.
 - `clear` roda antes de `resolve_election`. Para o final de derrota variar com uma flag, limpe a flag numa carta do mandato seguinte, não na eleição.
 - Escolhas que levam a final especial têm efeitos ruins de propósito, senão o jogador cuidadoso as prefere.
