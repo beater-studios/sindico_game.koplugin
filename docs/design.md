@@ -121,7 +121,7 @@ O emulador não mostra o que é próprio do e-ink nem a velocidade do aparelho: 
 
 1. Atualizar `version` em `_meta.lua` e criar a seção da versão em `CHANGELOG.md`, no formato `## [1.2.3]`.
 2. Rodar `tools/koreader/check_all_sizes.sh` e testar num aparelho.
-3. Criar a tag `v1.2.3` e enviá-la. O workflow `release.yml` confere se a tag bate com o `_meta.lua`, roda as verificações e publica o zip e o checksum, com as notas do `CHANGELOG.md`.
+3. Publicar a release `v1.2.3` no GitHub, criando a tag junto. O workflow `release.yml` confere se a tag bate com o `_meta.lua`, roda as verificações e anexa o zip e o checksum à release. Se as notas da release ficarem vazias, ele as preenche com a seção do `CHANGELOG.md`. O workflow usa a versão de `release.yml` do commit da tag, então a tag precisa ser criada depois do push. Se ele falhar por causa do código, apagar a release e a tag, corrigir, enviar e publicar de novo. Se a falha for passageira, basta rodá-lo de novo: o anexo é substituído, não duplicado.
 
 ## Conteúdo
 
