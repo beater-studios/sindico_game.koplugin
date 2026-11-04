@@ -17,7 +17,7 @@ A game by [Beater Studios](https://beaterstudios.com/).
 - **Four meters:** Residents, Funds, Building and Patience. If any of them reaches 0 the game ends, each with its own ending.
 - **Terms:** there is a budget review mid-term and an election at the end. Each re-election makes things harder. Winning 5 terms leads to the manager-for-life ending.
 - **Memory:** your decisions unlock future cards and come back to haunt you months later.
-- **Content:** 266 cards, 18 characters, 15 story arcs and 25 endings to discover, kept in a gallery.
+- **Content:** 266 cards, 18 characters, 15 story arcs and 24 endings to discover, kept in a gallery.
 - **Minutes:** a record of your notable decisions that sums up the story of each game.
 - **No internet:** it works offline and collects no data. Progress is saved after every decision.
 
