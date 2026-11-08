@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## [1.0.2]
+
+- Com o jogo aberto, a tela de descanso mostra a capa do Síndico no lugar da capa do livro.
+
 ## [1.0.1]
 
 - Vencer os 5 mandatos agora conta 5 mandatos completos na tela de final e no recorde, não 4.

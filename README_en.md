@@ -19,6 +19,7 @@ A game by [Beater Studios](https://beaterstudios.com/).
 - **Memory:** your decisions unlock future cards and come back to haunt you months later.
 - **Content:** 266 cards, 18 characters, 15 story arcs and 24 endings to discover, kept in a gallery.
 - **Minutes:** a record of your notable decisions that sums up the story of each game.
+- **Sleep screen:** if the device sleeps with the game open, it shows the O Síndico cover instead of the book cover. This applies when the KOReader sleep screen is set to show the book cover.
 - **No internet:** it works offline and collects no data. Progress is saved after every decision.
 
 ## Installation

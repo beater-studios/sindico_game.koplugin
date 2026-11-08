@@ -13,11 +13,12 @@ sindico_game.koplugin/
     ui/screen.lua              telas
     ui/meter_bar.lua           barra dos medidores
     ui/title_case.lua          maiúsculas iniciais dos botões
+    screensaver.lua            capa do jogo na tela de descanso
   data/
     manifest.lua               lista dos decks
     characters.lua, endings.lua, help.lua
     decks/*.lua                cartas
-  assets/                      retratos, ícones SVG e prédio
+  assets/                      retratos, ícones SVG, prédio e capa da tela de descanso
   tools/, tests/, docs/        desenvolvimento, fora do pacote publicado
 ```
 
@@ -95,6 +96,7 @@ A tela de final mostra o prédio inteiro nos finais sem `trigger` e em `all_mand
 - Galeria, ata, como jogar e sobre usam a mesma tela de lista paginada, com cada item em sua própria caixa. Muda de página pelos botões ou deslizando o dedo.
 - Na tela de título, a imagem do prédio se ajusta ao número de botões, então nada fica para fora.
 - O jogo é sempre em retrato. Aberto em paisagem, ele gira a tela e restaura a rotação ao fechar; pedidos de rotação durante a partida são ignorados.
+- **Tela de descanso:** se o aparelho dorme com o jogo aberto e a tela de descanso do KOReader está no modo de capa do livro, aparece `assets/screensaver.png` no lugar. A troca entra embrulhando `Screensaver.setup` do KOReader: ele escolhe a imagem como sempre, e o jogo só a troca quando a tela do Síndico é a janela de tela cheia no topo. Nenhuma configuração é gravada, então fechar o jogo devolve a capa do livro. Ao desligar, ao reiniciar ou em outro modo, nada muda. A imagem tem 1200x1600, o dobro de 600x800, para ficar nítida em telas maiores; nas de 600x800, o KOReader a reduz pela metade.
 
 ## Ferramentas
 
@@ -110,12 +112,12 @@ Com uma cópia do KOReader para desktop, indicada em `KOREADER_DIR` (a pasta que
 
 - `tools/koreader/run_emulator.sh`: abre o KOReader numa janela de 600x800, com o plugin carregado. O jogo fica em Ferramentas. As configurações ficam em `.ko-home/`.
 - `tools/koreader/check_all_sizes.sh`: mede todos os textos contra a tela, joga 40 partidas pela interface e confere a abertura em paisagem, em quatro tamanhos de tela. Rodar antes de cada versão.
-- `tools/koreader/run_headless.sh <script.lua> [largura] [altura] [dpi]`: roda um script sem janela. Com `OUTPUT_DIR` definido, `tools/koreader/check_layout.lua` salva as telas em PNG ali.
+- `tools/koreader/run_headless.sh <script.lua> [largura] [altura] [dpi]`: roda um script sem janela. Com `OUTPUT_DIR` definido, `tools/koreader/check_layout.lua` salva as telas em PNG ali, e `tools/koreader/check_screensaver.lua` confere quando a capa do jogo entra na tela de descanso e salva a tela resultante.
 - `OUTPUT_DIR=docs/screenshots tools/koreader/run_headless.sh tools/koreader/render_screens.lua`: atualiza as capturas de tela do README.
 
 Outras:
 
-- `python3 -I tools/make_art.py`: gera os retratos e o prédio em `assets/`. Precisa do Pillow. Este script guarda a arte como código de desenho, por isso fica sob a licença do conteúdo (`NOTICE`). Os ícones são SVG escritos à mão, em `assets/icons/`.
+- `python3 -I tools/make_art.py`: gera os retratos e o prédio em `assets/`. Precisa do Pillow. Com `KOREADER_DIR`, `python3 -I tools/make_art.py screensaver` gera a capa da tela de descanso, com a Noto Serif do KOReader. Este script guarda a arte como código de desenho, por isso fica sob a licença do conteúdo (`NOTICE`). Os ícones são SVG escritos à mão, em `assets/icons/`.
 - `tools/package.sh`: gera `dist/sindico_game.koplugin.zip` e o `.sha256`, só com os arquivos que o jogo usa e os de licença.
 
 O emulador não mostra o que é próprio do e-ink nem a velocidade do aparelho: a conferência final é num aparelho real.

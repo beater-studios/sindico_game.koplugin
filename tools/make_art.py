@@ -1,8 +1,9 @@
 import math
 import os
 import random
+import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 ASSETS = os.path.join(ROOT, "assets")
@@ -419,7 +420,7 @@ def cat():
     c.save(os.path.join(ASSETS, "portraits", "almirante.png"))
 
 
-def building(path, width, height, damaged=False, seed=3):
+def draw_building(width, height, damaged=False, seed=3):
     rng = random.Random(seed)
     c = Canvas(width, height)
     margin = width // 7
@@ -458,10 +459,41 @@ def building(path, width, height, damaged=False, seed=3):
         c.line(crack, width=SCALE * 5)
         crack = [(width - margin - 20, roof + 40), (width - margin - 70, roof + 110), (width - margin - 40, roof + 180), (width - margin - 90, roof + 250)]
         c.line(crack, width=SCALE * 4)
-    c.save(path)
+    return c
+
+
+def building(path, width, height, damaged=False, seed=3):
+    draw_building(width, height, damaged, seed).save(path)
+
+
+def screensaver():
+    koreader = os.environ.get("KOREADER_DIR")
+    if not koreader:
+        sys.exit("Defina KOREADER_DIR com a pasta do KOReader, que tem as fontes Noto.")
+    # Laid out in 600x800 units and saved at twice that, so larger screens get a sharp image and 600x800 gets a clean halving.
+    w, h, output = 600, 800, 2
+    image = Image.new("L", (w * SCALE, h * SCALE), WHITE)
+    draw = ImageDraw.Draw(image)
+    title_font = ImageFont.truetype(os.path.join(koreader, "fonts", "noto", "NotoSerif-Bold.ttf"), 66 * SCALE)
+    draw.text((w // 2 * SCALE, 34 * SCALE), "O Síndico", font=title_font, fill=BLACK, anchor="mt")
+    tower = draw_building(420, 520).image
+    image.paste(tower, ((w - 420) // 2 * SCALE, 134 * SCALE))
+    size, gap = 98, 10
+    x = (w - 5 * size - 4 * gap) // 2
+    for key in ("neide", "valdir", "kleber", "lurdes", "almirante"):
+        face_image = Image.open(os.path.join(ASSETS, "portraits", key + ".png")).convert("L")
+        image.paste(face_image.resize((size * SCALE, size * SCALE), Image.LANCZOS), (x * SCALE, 676 * SCALE))
+        x += size + gap
+    final = image.resize((w * output, h * output), Image.LANCZOS)
+    final = final.point(lambda v: round(v / 17) * 17)
+    final.save(os.path.join(ASSETS, "screensaver.png"), optimize=True)
+    print("Imagem gerada: assets/screensaver.png")
 
 
 def main():
+    if sys.argv[1:] == ["screensaver"]:
+        screensaver()
+        return
     for key, params in CHARACTERS.items():
         portrait(key, params)
     cat()

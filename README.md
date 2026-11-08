@@ -21,6 +21,7 @@ Um jogo da [Beater Studios](https://beaterstudios.com/).
 - **Memória:** suas decisões liberam cartas futuras e voltam a cobrar a conta meses depois.
 - **Conteúdo:** 266 cartas, 18 personagens, 15 arcos e 24 finais para descobrir, guardados numa galeria.
 - **Ata:** o registro das suas decisões marcantes, que resume a história de cada partida.
+- **Tela de descanso:** se o aparelho dorme com o jogo aberto, aparece a capa do Síndico no lugar da capa do livro. Vale quando a tela de descanso do KOReader mostra a capa do livro.
 - **Sem internet:** funciona offline e não coleta dados. O progresso é salvo a cada decisão.
 
 ## Instalação

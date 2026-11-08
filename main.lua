@@ -1,9 +1,12 @@
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 
+local GameScreensaver = require("sindico_game/screensaver")
 local Screen = require("sindico_game/ui/screen")
 
 local PLUGIN_DIR = debug.getinfo(1, "S").source:gsub("^@", ""):match("(.*)/") or "."
+
+GameScreensaver.install(PLUGIN_DIR)
 
 local SindicoGame = WidgetContainer:extend{
     name = "sindico_game",
