@@ -1,9 +1,12 @@
+"""Draws the character portraits and the building in assets/, as drawing code.
+
+Usage: python3 -I tools/make_art.py. Needs Pillow. The sleep screen cover comes from tools/make_brand_art.py.
+"""
 import math
 import os
 import random
-import sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 ASSETS = os.path.join(ROOT, "assets")
@@ -40,6 +43,10 @@ class Canvas:
     def arc(self, x0, y0, x1, y1, start, end, fill=BLACK, width=LINE):
         self.draw.arc(self.s(x0, y0, x1, y1), start, end, fill=fill, width=width)
 
+    def frame(self):
+        # Flush with the edges, so nothing drawn under it shows outside.
+        self.draw.rectangle([0, 0, self.w - 1, self.h - 1], outline=BLACK, width=SCALE * 3)
+
     def save(self, path):
         small = self.image.resize((self.w // SCALE, self.h // SCALE), Image.LANCZOS)
         small = small.point(lambda v: round(v / 17) * 17)
@@ -71,40 +78,63 @@ def background(c, kind):
         c.rect(0, 0, PORTRAIT, PORTRAIT, fill=LIGHT, outline=None)
 
 
+def neckline(c, skin, left, right, depth, shoulder_line):
+    # An opening in the clothes that shows the neck. With shoulder_line, it starts just below the shoulder
+    # line (y 222), which stays as its top edge; without it, it covers that line, for a neck under the chin.
+    cy = 224 if shoulder_line else 220
+    c.draw.chord(c.s(left, cy - depth, right, cy + depth), 0, 180, fill=skin)
+    start = 0 if shoulder_line else math.degrees(math.asin(2 / depth))
+    c.arc(left, cy - depth, right, cy + depth, start, 180 - start)
+
+
 def body(c, p):
     style = p.get("body", "shirt")
     fill = p.get("body_fill", MID)
+    skin = p.get("skin", WHITE)
     c.poly([(30, 300), (45, 245), (105, 222), (195, 222), (255, 245), (270, 300)], fill=fill)
+    # Where the arms meet the chest: a thin line a little darker than the clothes (lighter only on black), so
+    # they do not look flat.
+    seam = fill - 34 if fill >= 34 else fill + 34
+    c.line([(79, 264), (76, 304)], fill=seam, width=SCALE * 2)
+    c.line([(221, 264), (224, 304)], fill=seam, width=SCALE * 2)
     if style == "suit":
         c.poly([(150, 300), (118, 225), (182, 225)], fill=WHITE)
         c.poly([(150, 300), (138, 240), (150, 228), (162, 240)], fill=BLACK, width=SCALE)
     elif style == "uniform":
-        c.line([(150, 226), (150, 300)])
+        c.line([(150, 226), (150, 304)])
         c.rect(180, 256, 222, 282, fill=WHITE, width=SCALE * 2)
         c.line([(188, 264), (214, 264)], width=SCALE * 2)
         c.line([(188, 273), (208, 273)], width=SCALE * 2)
     elif style == "collar":
-        c.poly([(118, 224), (150, 256), (132, 272), (106, 232)], fill=WHITE)
-        c.poly([(182, 224), (150, 256), (168, 272), (194, 232)], fill=WHITE)
+        # The open collar shows the neck between the two flaps, below the shoulder line, which stays as its edge.
+        c.poly([(118, 224), (150, 256), (182, 224)], fill=skin, outline=None)
+        # The flaps are a shade darker than the shirt, two if that would match the skin, so they never blend
+        # with the neck, the shirt or a white background.
+        flap = fill - 34 if abs(fill - 34 - skin) >= 30 else fill - 68
+        c.poly([(118, 222), (150, 256), (132, 272), (106, 222)], fill=flap)
+        c.poly([(182, 222), (150, 256), (168, 272), (194, 222)], fill=flap)
     elif style == "apron":
-        c.poly([(100, 300), (112, 240), (188, 240), (200, 300)], fill=WHITE)
+        c.poly([(100, 304), (112, 240), (188, 240), (200, 304)], fill=p.get("apron_fill", LIGHT))
         c.line([(112, 240), (120, 222)])
         c.line([(188, 240), (180, 222)])
     elif style == "tshirt":
-        c.arc(116, 200, 184, 256, 20, 160)
+        neckline(c, skin, 128, 172, 26, shoulder_line=False)
     elif style == "dress":
-        c.arc(106, 190, 194, 262, 20, 160)
-        for x in (120, 150, 180):
-            c.ellipse(x - 5, 268, x + 5, 278, fill=WHITE, width=SCALE * 2)
+        neckline(c, skin, 114, 186, 36, shoulder_line=True)
+        for y in (270, 288):
+            c.ellipse(146, y - 4, 154, y + 4, fill=WHITE, width=SCALE * 2)
+
+
+HEADS = {
+    "oval": (88, 62, 212, 226),
+    "round": (80, 72, 220, 222),
+    "long": (96, 52, 204, 230),
+    "square": (84, 66, 216, 224),
+}
 
 
 def face(c, p):
-    x0, y0, x1, y1 = {
-        "oval": (88, 62, 212, 226),
-        "round": (80, 72, 220, 222),
-        "long": (96, 52, 204, 230),
-        "square": (84, 66, 216, 224),
-    }[p.get("head", "oval")]
+    x0, y0, x1, y1 = HEADS[p.get("head", "oval")]
     skin = p.get("skin", WHITE)
     c.ellipse(x0 - 12, 134, x0 + 12, 168, fill=skin)
     c.ellipse(x1 - 12, 134, x1 + 12, 168, fill=skin)
@@ -188,16 +218,22 @@ def mouth(c, p):
         c.ellipse(136, 176, 164, 204, fill=BLACK, outline=None)
 
 
-def facial_hair(c, kind):
+def facial_hair(c, kind, box):
     if kind == "mustache":
         c.poly([(150, 172), (118, 186), (112, 178), (134, 166), (166, 166), (188, 178), (182, 186)], fill=BLACK, outline=None)
     elif kind == "gray_mustache":
         c.poly([(150, 172), (116, 188), (110, 178), (134, 166), (166, 166), (190, 178), (184, 188)], fill=MID)
     elif kind == "stubble":
+        x0, y0, x1, y1 = box
+        cx, cy, rx, ry = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 - 8, (y1 - y0) / 2 - 8
         rng = random.Random(7)
-        for _ in range(70):
+        for _ in range(90):
             x, y = rng.randint(100, 200), rng.randint(172, 218)
-            c.ellipse(x - 1, y - 1, x + 1, y + 1, fill=DARK, outline=None)
+            # Only dots inside the face, away from its outline, and none over the mouth.
+            on_face = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1
+            on_mouth = ((x - 150) / 38) ** 2 + ((y - 186) / 26) ** 2 <= 1
+            if on_face and not on_mouth:
+                c.ellipse(x - 1, y - 1, x + 1, y + 1, fill=DARK, outline=None)
 
 
 def full_beard(c, box):
@@ -212,116 +248,157 @@ def full_beard(c, box):
     c.poly(outer + inner, fill=DARK)
 
 
-def hair_cap(c, p, box, fill, outline=BLACK):
+def face_half_width(box, y):
+    x0, y0, x1, y1 = box
+    rx, ry = (x1 - x0) / 2, (y1 - y0) / 2
+    dy = y - (y0 + y1) / 2
+    return rx * math.sqrt(max(1 - (dy / ry) ** 2, 0))
+
+
+def hair_cap(c, p, box, fill, edge="full", strokes=False):
+    # edge: "full" outlines the cap, "arc" only its top curve (as a parting over long hair), None nothing.
     x0, y0, x1, y1 = box
     skin = p.get("skin", WHITE)
-    c.draw.chord(c.s(x0 - 4, y0 - 14, x1 + 4, y0 + 108), 180, 360, fill=fill, outline=outline, width=LINE)
-    rx = (x1 - x0) / 2 - 16
     cx = (x0 + x1) / 2
+    outline = BLACK if edge == "full" else None
+    if p.get("head") == "square":
+        # Rounded on top like the face, so its corners never show past the hair.
+        c.draw.rounded_rectangle(c.s(x0, y0 - 14, x1, y0 + 47), radius=48 * SCALE, corners=(True, True, False, False), fill=fill, outline=outline, width=LINE)
+        cap = None
+    else:
+        half = face_half_width(box, y0 + 47)
+        cap = (cx - half, y0 - 14, cx + half, y0 + 108)
+        c.draw.chord(c.s(*cap), 180, 360, fill=fill, outline=outline, width=LINE)
+        if edge == "arc":
+            c.arc(*cap, 180, 360)
+    if strokes and cap:
+        # Combed lines that follow the curve of the hair; the forehead drawn next hides where they end.
+        for inset in (9, 19):
+            c.arc(cap[0] + inset, cap[1] + inset, cap[2] - inset, cap[3] - inset, 212, 292, fill=MID, width=SCALE * 2)
+    rx = (x1 - x0) / 2 - 16
     top = y0 + 20
     c.ellipse(cx - rx, top, cx + rx, top + 90, fill=skin, outline=None)
-    c.arc(cx - rx, top, cx + rx, top + 90, 190, 350)
+    # The hairline ends where it meets the bottom edge of the cap (y0 + 47), not below it.
+    lift = math.degrees(math.asin((top + 45 - (y0 + 47)) / 45))
+    c.arc(cx - rx, top, cx + rx, top + 90, 180 + lift, 360 - lift)
 
 
-def hair(c, p, box):
+def hair_behind(c, p, box):
+    # Drawn before the body and the face, which cover what is behind the head.
     kind = p.get("hair")
     fill = p.get("hair_fill", BLACK)
     x0, y0, x1, y1 = box
     top = y0
-    if kind == "bun":
-        c.ellipse(116, 18, 184, 76, fill=fill)
-        hair_cap(c, p, box, fill)
-    elif kind == "balding":
-        c.draw.chord(c.s(x0 - 6, 90, x0 + 44, 170), 90, 270, fill=fill, outline=BLACK, width=LINE)
-        c.draw.chord(c.s(x1 - 44, 90, x1 + 6, 170), 270, 90, fill=fill, outline=BLACK, width=LINE)
-    elif kind == "short":
-        hair_cap(c, p, box, fill)
-    elif kind == "slick":
-        hair_cap(c, p, box, fill)
-        for dx in (0, 22, 44):
-            c.line([(x0 + 24 + dx, top + 2), (x0 + 44 + dx, top + 20)], fill=MID, width=SCALE * 2)
-    elif kind == "side":
-        hair_cap(c, p, box, fill)
-        c.line([(x0 + 40, top - 8), (x0 + 30, top + 26)], width=SCALE * 3)
+    if kind == "balding":
+        # Tufts above the ears; the face covers their inner half.
+        for x in (x0, x1):
+            c.ellipse(x - 14, 100, x + 14, 160, fill=fill)
     elif kind == "bob":
         c.draw.chord(c.s(x0 - 16, top - 14, x1 + 16, 236), 150, 390, fill=fill, outline=BLACK, width=LINE)
     elif kind == "long":
         c.rect(x0 - 16, top + 40, x0 + 22, 258, fill=fill, radius=16)
         c.rect(x1 - 22, top + 40, x1 + 16, 258, fill=fill, radius=16)
-        c.draw.chord(c.s(x0 - 16, top - 14, x1 + 16, 170), 180, 360, fill=fill, outline=BLACK, width=LINE)
+        c.draw.chord(c.s(x0 - 16, top - 14, x1 + 16, 170), 180, 360, fill=fill)
+        c.arc(x0 - 16, top - 14, x1 + 16, 170, 180, 360)
     elif kind == "ponytail":
         c.ellipse(x1 - 6, 60, x1 + 42, 186, fill=fill)
-        c.draw.chord(c.s(x0 - 4, top - 12, x1 + 4, 146), 180, 360, fill=fill, outline=BLACK, width=LINE)
+    elif kind == "afro":
+        c.ellipse(52, 22, 248, 172, fill=fill)
+
+
+def hair_front(c, p, box):
+    kind = p.get("hair")
+    fill = p.get("hair_fill", BLACK)
+    x0, y0, x1, y1 = box
+    if kind == "bun":
+        c.ellipse(116, 18, 184, 76, fill=fill)
+        hair_cap(c, p, box, fill)
+    elif kind in ("short", "ponytail"):
+        hair_cap(c, p, box, fill)
+    elif kind == "slick":
+        hair_cap(c, p, box, fill, strokes=True)
+    elif kind == "messy":
+        # A wide mop that fills the space under the headphone band, with spikes sticking out above it. The
+        # dome is cut flat at y 115, behind the ear cups.
+        dome = (76, 36, 224, 194)
+        cx, cy, rx, ry = 150, 115, 74, 79
+        for i in range(9):
+            mid = math.radians(200 + i * 17.5)
+            spread = math.radians(8)
+            tip = 16 + (i % 2) * 8
+            c.poly([
+                (cx + (rx - 8) * math.cos(mid - spread), cy + (ry - 8) * math.sin(mid - spread)),
+                (cx + (rx + tip) * math.cos(mid), cy + (ry + tip) * math.sin(mid)),
+                (cx + (rx - 8) * math.cos(mid + spread), cy + (ry - 8) * math.sin(mid + spread)),
+            ], fill=fill)
+        c.draw.chord(c.s(*dome), 180, 360, fill=fill)
+        c.arc(*dome, 180, 360)
+        hair_cap(c, p, box, fill, edge=None)
+    elif kind == "long":
+        hair_cap(c, p, box, fill, edge="arc")
+    elif kind in ("bob", "afro"):
+        hair_cap(c, p, box, fill, edge=None)
     elif kind == "curly":
         for cx, cy in [(92, 96), (116, 62), (150, 48), (184, 62), (208, 96), (84, 128), (216, 128)]:
             c.ellipse(cx - 26, cy - 26, cx + 26, cy + 26, fill=fill)
         c.ellipse(96, 68, 204, 122, fill=fill, outline=None)
-    elif kind == "afro":
-        c.ellipse(52, 22, 248, 172, fill=fill)
-    elif kind == "messy":
-        for i, x in enumerate(range(int(x0), int(x1), 18)):
-            c.poly([(x, top + 34), (x + 8, top - 18 - (i % 2) * 10), (x + 22, top + 34)], fill=fill)
-        c.draw.chord(c.s(x0 - 2, top - 4, x1 + 2, 130), 180, 360, fill=fill, outline=None)
     elif kind == "gray_wave":
         for cx, cy in [(100, 96), (126, 66), (156, 56), (186, 68), (204, 98)]:
-            c.ellipse(cx - 24, cy - 22, cx + 24, cy + 22, fill=LIGHT)
-        c.ellipse(100, 74, 200, 118, fill=LIGHT, outline=None)
+            c.ellipse(cx - 24, cy - 22, cx + 24, cy + 22, fill=fill)
+        c.ellipse(100, 74, 200, 118, fill=fill, outline=None)
 
 
 def headwear(c, kind):
     if kind == "cap":
-        c.draw.chord(c.s(82, 34, 218, 134), 180, 360, fill=DARK, outline=BLACK, width=LINE)
+        c.draw.chord(c.s(82, 38, 218, 138), 180, 360, fill=DARK, outline=BLACK, width=LINE)
         c.poly([(82, 86), (218, 86), (248, 100), (82, 100)], fill=BLACK)
     elif kind == "helmet":
-        c.draw.chord(c.s(72, 26, 228, 144), 180, 360, fill=WHITE, outline=BLACK, width=LINE)
+        c.draw.chord(c.s(72, 30, 228, 148), 180, 360, fill=WHITE, outline=BLACK, width=LINE)
         c.rect(58, 84, 242, 102, fill=WHITE, radius=8)
         c.rect(136, 28, 164, 84, fill=MID, radius=4)
     elif kind == "hardhat":
-        c.draw.chord(c.s(78, 30, 222, 136), 180, 360, fill=LIGHT, outline=BLACK, width=LINE)
+        c.draw.chord(c.s(78, 34, 222, 140), 180, 360, fill=LIGHT, outline=BLACK, width=LINE)
         c.rect(66, 84, 234, 100, fill=LIGHT, radius=8)
-        c.line([(150, 30), (150, 84)])
+        c.line([(150, 34), (150, 84)])
     elif kind == "headphones":
-        c.arc(72, 30, 228, 200, 180, 360, width=SCALE * 8)
-        c.rect(62, 118, 94, 176, fill=BLACK, radius=12)
-        c.rect(206, 118, 238, 176, fill=BLACK, radius=12)
+        # A gray band and dark cups with black edges, so they stand out from dark hair.
+        c.arc(72, 30, 228, 200, 180, 360, width=SCALE * 11)
+        c.arc(72, 30, 228, 200, 181, 359, fill=MID, width=SCALE * 5)
+        c.rect(62, 110, 94, 168, fill=DARK, radius=12)
+        c.rect(206, 110, 238, 168, fill=DARK, radius=12)
 
 
 def extras(c, p):
+    x0, _, x1, _ = HEADS[p.get("head", "oval")]
     for kind in p.get("extras", []):
         if kind == "earrings":
-            c.ellipse(78, 168, 94, 186, fill=WHITE, width=SCALE * 3)
-            c.ellipse(206, 168, 222, 186, fill=WHITE, width=SCALE * 3)
+            # The ears are centered on the sides of the head, from y 134 to 168.
+            for x in (x0, x1):
+                c.ellipse(x - 8, 164, x + 8, 182, fill=WHITE, width=SCALE * 3)
         elif kind == "necklace":
-            c.arc(106, 196, 194, 262, 25, 155, width=SCALE * 3)
-            c.ellipse(142, 252, 158, 268, fill=BLACK, outline=None)
-        elif kind == "wrinkles":
-            c.line([(112, 112), (140, 110)], width=SCALE * 2)
-            c.line([(160, 110), (188, 112)], width=SCALE * 2)
+            # From one top corner of the neckline to the other, as if it went around the neck behind it.
+            c.arc(120, 200, 180, 248, 0, 180, width=SCALE * 3)
+            c.ellipse(144, 242, 156, 254, fill=BLACK, outline=None)
         elif kind == "freckles":
             for x, y in [(110, 166), (120, 172), (130, 166), (170, 166), (180, 172), (190, 166)]:
                 c.ellipse(x - 2, y - 2, x + 2, y + 2, fill=BLACK, outline=None)
-        elif kind == "pencil":
-            c.line([(208, 96), (232, 150)], width=SCALE * 5)
         elif kind == "phone":
             c.rect(216, 196, 268, 288, fill=BLACK, radius=8)
             c.rect(222, 206, 262, 276, fill=LIGHT, width=SCALE)
-        elif kind == "key":
-            c.ellipse(36, 250, 62, 276, fill=None, width=SCALE * 4)
-            c.line([(58, 266), (90, 290)], width=SCALE * 4)
         elif kind == "wrench":
-            c.line([(232, 296), (272, 216)], width=SCALE * 8)
+            c.line([(228, 304), (272, 216)], width=SCALE * 8)
             c.ellipse(258, 196, 292, 230, fill=None, width=SCALE * 5)
         elif kind == "calculator":
-            c.rect(30, 214, 88, 296, fill=WHITE, radius=6)
+            c.rect(30, 214, 88, 304, fill=WHITE, radius=6)
             c.rect(38, 224, 80, 242, fill=LIGHT, width=SCALE)
             for y in (254, 272):
                 for x in (42, 58, 74):
                     c.ellipse(x - 4, y - 4, x + 4, y + 4, fill=BLACK, outline=None)
         elif kind == "cake":
-            c.rect(30, 256, 96, 296, fill=WHITE, radius=4)
+            c.rect(30, 256, 96, 304, fill=WHITE, radius=4)
             c.draw.chord(c.s(26, 236, 100, 276), 180, 360, fill=LIGHT, outline=BLACK, width=LINE)
         elif kind == "fork":
-            c.line([(248, 296), (248, 200)], width=SCALE * 5)
+            c.line([(248, 304), (248, 200)], width=SCALE * 5)
             for x in (238, 248, 258):
                 c.line([(x, 200), (x, 172)], width=SCALE * 3)
             c.line([(238, 200), (258, 200)], width=SCALE * 4)
@@ -331,58 +408,54 @@ def extras(c, p):
             c.ellipse(246, 80, 266, 98, fill=BLACK, outline=None)
             c.line([(264, 88), (264, 44), (284, 52)], width=SCALE * 3)
         elif kind == "clipboard":
-            c.rect(24, 212, 92, 298, fill=WHITE, radius=4)
+            c.rect(24, 212, 92, 304, fill=WHITE, radius=4)
             c.rect(46, 204, 70, 220, fill=BLACK, width=SCALE)
             for y in (236, 254, 272):
                 c.line([(36, y), (80, y)], width=SCALE * 2)
         elif kind == "suitcase":
-            c.rect(218, 240, 284, 296, fill=DARK, radius=6)
+            c.rect(218, 240, 284, 304, fill=DARK, radius=6)
             c.arc(236, 222, 266, 256, 180, 360, width=SCALE * 4)
 
 
 def portrait(key, p):
     c = Canvas(PORTRAIT, PORTRAIT)
     background(c, p.get("bg"))
-    if p.get("hair") in ("afro", "long", "ponytail", "bob"):
-        box = {"oval": (88, 62, 212, 226), "round": (80, 72, 220, 222), "long": (96, 52, 204, 230), "square": (84, 66, 216, 224)}[p.get("head", "oval")]
-        hair(c, p, box)
+    box = HEADS[p.get("head", "oval")]
+    hair_behind(c, p, box)
     body(c, p)
-    box = face(c, p)
-    if p.get("hair") not in ("afro", "long", "ponytail", "bob"):
-        hair(c, p, box)
-    elif p.get("hair") in ("long", "bob", "ponytail"):
-        hair_cap(c, p, box, p.get("hair_fill", BLACK))
-    elif p.get("hair") == "afro":
-        hair_cap(c, p, box, p.get("hair_fill", BLACK), outline=None)
+    face(c, p)
+    hair_front(c, p, box)
     headwear(c, p.get("hat"))
     eyes(c, p)
     glasses(c, p.get("glasses"))
     if p.get("facial") == "beard":
         full_beard(c, box)
-    c.arc(140, 150, 160, 176, 40, 160, width=SCALE * 3)
+    # A mustache or a beard starts at about y 166, so the nose goes up to stay visible over it.
+    nose = 12 if p.get("facial") in ("mustache", "gray_mustache", "beard") else 0
+    c.arc(140, 150 - nose, 160, 176 - nose, 40, 160, width=SCALE * 3)
     mouth(c, p)
-    facial_hair(c, p.get("facial"))
+    facial_hair(c, p.get("facial"), box)
     extras(c, p)
-    c.rect(1, 1, PORTRAIT - 2, PORTRAIT - 2, fill=None, width=SCALE * 3)
+    c.frame()
     c.save(os.path.join(ASSETS, "portraits", key + ".png"))
 
 
 CHARACTERS = {
-    "neide": dict(bg="dots", head="round", skin=WHITE, hair="bun", hair_fill=MID, eyes="narrow", brows="raised", glasses="half", mouth="smirk", body="dress", body_fill=LIGHT, extras=["necklace", "wrinkles"]),
-    "valdir": dict(bg="bricks", head="square", skin=LIGHT, hair="balding", hair_fill=MID, eyes="tired", brows="sad", mouth="flat", facial="gray_mustache", body="uniform", body_fill=MID, extras=["key", "wrinkles"]),
+    "neide": dict(bg="dots", head="round", skin=WHITE, hair="bun", hair_fill=MID, eyes="narrow", brows="raised", glasses="half", mouth="smirk", body="dress", body_fill=LIGHT, extras=["necklace"]),
+    "valdir": dict(bg="bricks", head="square", skin=LIGHT, hair="balding", hair_fill=MID, eyes="tired", brows="sad", mouth="flat", facial="gray_mustache", body="uniform", body_fill=MID),
     "marcia": dict(bg="grid", head="long", skin=WHITE, hair="bob", hair_fill=BLACK, eyes="lash", brows="raised", mouth="smirk", body="suit", body_fill=DARK, extras=["earrings", "clipboard"]),
     "rogerio": dict(bg="lines", head="long", skin=WHITE, hair="slick", hair_fill=BLACK, eyes="narrow", brows="raised", glasses="square", mouth="flat", body="suit", body_fill=BLACK),
     "kleber": dict(bg="bricks", head="round", skin=MID, hair=None, hat="cap", eyes="wide", mouth="grin", body="uniform", body_fill=DARK),
     "pri": dict(bg="gray", head="oval", skin=LIGHT, hair="ponytail", hair_fill=BLACK, eyes="tired", brows="sad", mouth="flat", body="uniform", body_fill=DARK, extras=["freckles"]),
     "jessica": dict(bg="sun", head="oval", skin=WHITE, hair="long", hair_fill=DARK, eyes="lash", mouth="grin", body="tshirt", body_fill=LIGHT, extras=["earrings", "phone"]),
-    "ademir": dict(bg="grid", head="square", skin=WHITE, hair="side", hair_fill=LIGHT, eyes="narrow", brows="angry", mouth="frown", facial="mustache", body="collar", body_fill=LIGHT, extras=["wrinkles"]),
+    "ademir": dict(bg="grid", head="square", skin=WHITE, hair="short", hair_fill=LIGHT, eyes="narrow", brows="angry", mouth="frown", facial="mustache", body="collar", body_fill=LIGHT),
     "lurdes": dict(bg="dots", head="round", skin=MID, hair="curly", hair_fill=DARK, eyes="dot", mouth="smile", body="apron", body_fill=MID, extras=["cake", "earrings"]),
     "pedro": dict(bg="lines", head="oval", skin=WHITE, hair="messy", hair_fill=BLACK, eyes="tired", mouth="flat", body="tshirt", body_fill=DARK, hat="headphones", extras=["freckles"]),
-    "carmem": dict(bg="dots", head="long", skin=LIGHT, hair="gray_wave", eyes="narrow", brows="angry", glasses="round", mouth="frown", body="dress", body_fill=DARK, extras=["necklace", "wrinkles"]),
+    "carmem": dict(bg="dots", head="long", skin=LIGHT, hair="gray_wave", hair_fill=WHITE, eyes="narrow", brows="angry", glasses="round", mouth="frown", body="dress", body_fill=DARK, extras=["necklace"]),
     "rafael": dict(bg="sun", head="oval", skin=LIGHT, hair="slick", hair_fill=DARK, eyes="dot", brows="raised", mouth="grin", body="collar", body_fill=WHITE, extras=["suitcase"], facial="stubble"),
     "nelson": dict(bg="bricks", head="round", skin=LIGHT, hair=None, hat="hardhat", eyes="dot", mouth="smile", body="uniform", body_fill=MID, facial="mustache", extras=["wrench"]),
-    "renata": dict(bg="grid", head="square", skin=MID, hair=None, hat="helmet", eyes="narrow", brows="angry", mouth="flat", body="uniform", body_fill=BLACK, extras=["clipboard"]),
-    "osmar": dict(bg="grid", head="long", skin=WHITE, hair="balding", hair_fill=DARK, eyes="wide", brows="sad", glasses="round", mouth="frown", body="suit", body_fill=MID, extras=["calculator", "pencil"]),
+    "renata": dict(bg="grid", head="square", skin=MID, hair=None, hat="helmet", eyes="narrow", brows="angry", mouth="flat", body="uniform", body_fill=DARK, extras=["clipboard"]),
+    "osmar": dict(bg="grid", head="long", skin=WHITE, hair="balding", hair_fill=DARK, eyes="wide", brows="sad", glasses="round", mouth="frown", body="suit", body_fill=MID, extras=["calculator"]),
     "yara": dict(bg="lines", head="oval", skin=DARK, hair="afro", hair_fill=BLACK, eyes="lash", mouth="smile", body="collar", body_fill=LIGHT, extras=["notes", "earrings"]),
     "beto": dict(bg="bricks", head="round", skin=LIGHT, hair="short", hair_fill=BLACK, eyes="dot", brows="thick", mouth="grin", facial="beard", body="apron", body_fill=DARK, extras=["fork"]),
 }
@@ -392,6 +465,13 @@ def cat():
     c = Canvas(PORTRAIT, PORTRAIT)
     background(c, "dots")
     c.ellipse(40, 214, 260, 360, fill=DARK)
+    # The collar is the head shape moved down, kept inside the body: the head drawn over it leaves a band
+    # around the neck that ends where the head meets the body.
+    band = Image.new("L", (c.w, c.h), 0)
+    ImageDraw.Draw(band).ellipse(c.s(58, 78, 242, 252), fill=255)
+    body_mask = Image.new("L", (c.w, c.h), 0)
+    ImageDraw.Draw(body_mask).ellipse(c.s(43, 217, 257, 360), fill=255)
+    c.image.paste(BLACK, (0, 0), ImageChops.multiply(band, body_mask))
     c.poly([(70, 110), (64, 28), (136, 72)], fill=DARK)
     c.poly([(230, 110), (236, 28), (164, 72)], fill=DARK)
     c.poly([(82, 96), (78, 50), (118, 76)], fill=LIGHT, width=SCALE * 2)
@@ -414,9 +494,8 @@ def cat():
         for x_start, x_end in ((116, 42), (184, 258)):
             c.line([(x_start, y), (x_end, y + dy)], fill=BLACK, width=SCALE * 5)
             c.line([(x_start, y), (x_end, y + dy)], fill=WHITE, width=SCALE * 2)
-    c.rect(96, 232, 204, 250, fill=BLACK, radius=8)
-    c.ellipse(138, 244, 162, 268, fill=LIGHT, width=SCALE * 2)
-    c.rect(1, 1, PORTRAIT - 2, PORTRAIT - 2, fill=None, width=SCALE * 3)
+    c.ellipse(139, 246, 161, 268, fill=LIGHT, width=SCALE * 2)
+    c.frame()
     c.save(os.path.join(ASSETS, "portraits", "almirante.png"))
 
 
@@ -466,34 +545,7 @@ def building(path, width, height, damaged=False, seed=3):
     draw_building(width, height, damaged, seed).save(path)
 
 
-def screensaver():
-    koreader = os.environ.get("KOREADER_DIR")
-    if not koreader:
-        sys.exit("Defina KOREADER_DIR com a pasta do KOReader, que tem as fontes Noto.")
-    # Laid out in 600x800 units and saved at twice that, so larger screens get a sharp image and 600x800 gets a clean halving.
-    w, h, output = 600, 800, 2
-    image = Image.new("L", (w * SCALE, h * SCALE), WHITE)
-    draw = ImageDraw.Draw(image)
-    title_font = ImageFont.truetype(os.path.join(koreader, "fonts", "noto", "NotoSerif-Bold.ttf"), 66 * SCALE)
-    draw.text((w // 2 * SCALE, 34 * SCALE), "O Síndico", font=title_font, fill=BLACK, anchor="mt")
-    tower = draw_building(420, 520).image
-    image.paste(tower, ((w - 420) // 2 * SCALE, 134 * SCALE))
-    size, gap = 98, 10
-    x = (w - 5 * size - 4 * gap) // 2
-    for key in ("neide", "valdir", "kleber", "lurdes", "almirante"):
-        face_image = Image.open(os.path.join(ASSETS, "portraits", key + ".png")).convert("L")
-        image.paste(face_image.resize((size * SCALE, size * SCALE), Image.LANCZOS), (x * SCALE, 676 * SCALE))
-        x += size + gap
-    final = image.resize((w * output, h * output), Image.LANCZOS)
-    final = final.point(lambda v: round(v / 17) * 17)
-    final.save(os.path.join(ASSETS, "screensaver.png"), optimize=True)
-    print("Imagem gerada: assets/screensaver.png")
-
-
 def main():
-    if sys.argv[1:] == ["screensaver"]:
-        screensaver()
-        return
     for key, params in CHARACTERS.items():
         portrait(key, params)
     cat()

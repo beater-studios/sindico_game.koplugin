@@ -1,3 +1,5 @@
+-- Plays many games with random and careful choices and reports how long they last, the endings reached and
+-- the cards never seen. Usage: luajit tools/simulate.lua [games]
 package.path = "./?.lua;" .. package.path
 local Content = require("sindico_game/content")
 local Engine = require("sindico_game/engine")
@@ -56,7 +58,7 @@ local function stats(list)
     table.sort(list)
     local sum = 0
     for _, v in ipairs(list) do sum = sum + v end
-    return string.format("média %.1f, mediana %d, mín %d, máx %d", sum / #list, list[math.ceil(#list / 2)], list[1], list[#list])
+    return string.format("mean %.1f, median %d, min %d, max %d", sum / #list, list[math.ceil(#list / 2)], list[1], list[#list])
 end
 local function show(title, map, n)
     print(title)
@@ -66,18 +68,18 @@ local function show(title, map, n)
     for _, k in ipairs(keys) do print(string.format("  %-28s %6.1f%%", k, map[k] * 100 / n)) end
 end
 
-print("Jogador aleatório: decisões " .. stats(decisions) .. "; mandatos " .. stats(mandates))
-show("Finais (aleatório):", endings, GAMES)
-print("Jogador cuidadoso: decisões " .. stats(smart_decisions) .. "; mandatos " .. stats(smart_mandates))
-show("Finais (cuidadoso):", smart_endings, GAMES)
+print("Random player: decisions " .. stats(decisions) .. "; mandates " .. stats(mandates))
+show("Endings (random):", endings, GAMES)
+print("Careful player: decisions " .. stats(smart_decisions) .. "; mandates " .. stats(smart_mandates))
+show("Endings (careful):", smart_endings, GAMES)
 local never = {}
 for _, card in ipairs(engine.content.cards) do
     if not seen[card.id] then never[#never + 1] = card.id end
 end
-print("Cartas nunca vistas: " .. #never .. (#never > 0 and (" -> " .. table.concat(never, ", ")) or ""))
+print("Cards never seen: " .. #never .. (#never > 0 and (" -> " .. table.concat(never, ", ")) or ""))
 for _, ending in ipairs(engine.content.endings) do
     if not endings[ending.id] and not smart_endings[ending.id] then
-        print("Final nunca alcançado: " .. ending.id)
+        print("Ending never reached: " .. ending.id)
     end
 end
-print("Partidas travadas: " .. stuck)
+print("Stuck games: " .. stuck)

@@ -576,7 +576,7 @@ return {
         },
         right = {
             label = "Agradecer e negar",
-            result = "'Claro, meu filho', ela disse, e ficou olhando sua orelha.",
+            result = "'Claro, meu filho', ela disse, e anotou alguma coisa no caderno.",
             effects = { patience = 5, residents = -6 },
             schedule = { card = "carmem_petition", days = 84 },
         },
@@ -605,7 +605,7 @@ return {
         text = "Dona Carmem está com um abaixo-assinado pela volta dela. Já são 31 assinaturas. Eu assinei duas vezes, para ver se você ligava. Quer saber quem mais? Tenho a lista e um café.",
         left = {
             label = "Falar com ela",
-            result = "Você foi até o 1103. A sala tem um retrato seu. Na mesa. Com um clipe.",
+            result = "Você foi até o 1103. Ela serviu café e abriu uma pasta com o seu nome.",
             effects = { patience = -5 },
             next = "carmem_proposal",
         },
@@ -726,7 +726,7 @@ return {
         },
         right = {
             label = "Não pode",
-            result = "'Tá.' Ninguém sabe o que 'tá' quer dizer. Você vai descobrir.",
+            result = "'Tá.' No dia seguinte, a antena estava lá, disfarçada de varal.",
             effects = { residents = -2, building = 4, patience = -1 },
             schedule = { card = "antenna_illegal", days = 72 },
         },

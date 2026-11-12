@@ -12,7 +12,7 @@ return {
         },
         right = {
             label = "Sem foto",
-            result = "'Modesto', disse ela. Dita assim, a palavra parece um diagnóstico.",
+            result = "'Modesto', disse ela, no tom de quem dá um diagnóstico.",
             effects = { residents = -5, patience = 4, funds = 1 },
         },
     },
@@ -135,7 +135,7 @@ return {
         id = "veteran_rogerio_adverse_possession",
         char = "rogerio",
         requires = { mandate_min = 2 },
-        text = "Dada a extensão do seu mandato, levanto a tese de usucapião do cargo. Pela Lei do Assento Prolongado, você adquire o cargo, e o prédio pode cobrar por isso. Quem cuida da sua defesa?",
+        text = "Dada a extensão do seu mandato, levanto a tese de usucapião do cargo. Pela Lei do Assento Prolongado, o cargo passa a ser seu, e os moradores vão contestar. Quem cuida da sua defesa?",
         left = {
             label = "Contratar ele",
             result = "Ele se defendeu dele mesmo, ganhou e cobrou dos dois lados.",
@@ -170,7 +170,7 @@ return {
         text = "Você é síndico há anos, e eu comecei com 2 mil seguidores. Agora quero contar a sua história, em seis episódios. Vai ter música triste, e uma cena sua olhando a bomba d'água.",
         left = {
             label = "Participar",
-            result = "O episódio 3 é só o seu rosto, e foi aclamado. Ninguém te reconhece na rua. Sorte.",
+            result = "O episódio 3 é só o seu rosto, e foi o mais visto. Agora te param na padaria.",
             effects = { residents = 10, patience = -6 },
         },
         right = {
@@ -305,7 +305,7 @@ return {
         },
         right = {
             label = "Mandar embora",
-            result = "Ele saiu triste. Daqui a dois anos, ele vai entender.",
+            result = "Ele saiu triste e foi pedir conselho à Dona Carmem. Coitado.",
             effects = { patience = 4, residents = -5 },
         },
     },

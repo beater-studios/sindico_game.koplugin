@@ -7,7 +7,7 @@ local function check(name, condition)
         passed = passed + 1
     else
         failed = failed + 1
-        print("FALHOU: " .. name)
+        print("FAILED: " .. name)
     end
 end
 
@@ -40,38 +40,38 @@ end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = 10, residents = -5 } }) }), card("b") })
-    check("primeira carta", e.state.current == "a")
+    check("first card", e.state.current == "a")
     e:choose("left")
-    check("efeito positivo", e.state.meters.funds == 60)
-    check("efeito negativo", e.state.meters.residents == 45)
+    check("positive effect", e.state.meters.funds == 60)
+    check("negative effect", e.state.meters.residents == 45)
     check("deltas", e.state.last.deltas.funds == 10 and e.state.last.deltas.residents == -5)
-    check("avança dias", e.state.day == Engine.DEFAULT_CARD_DAYS)
-    check("não repete carta", e.state.current == "b")
+    check("days go by", e.state.day == Engine.DEFAULT_CARD_DAYS)
+    check("does not repeat a card", e.state.current == "b")
 end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = 90 } }) }), card("b") })
     e:choose("left")
-    check("limite 100", e.state.meters.funds == 100)
+    check("limit 100", e.state.meters.funds == 100)
 end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = -60 } }) }), card("b") })
     e:choose("left")
-    check("zero encerra", e.state.ending == "z_funds")
-    check("sem carta atual", e.state.current == nil)
+    check("zero ends the game", e.state.ending == "z_funds")
+    check("no current card", e.state.current == nil)
 end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = -60 }, set = { "f" } }) }) })
     e:choose("left")
-    check("final específico vem primeiro", e.state.ending == "z_funds_flag")
+    check("specific ending comes first", e.state.ending == "z_funds_flag")
 end
 
 do
     local e = make({ card("a", { left = choice({ ending = "special" }) }), card("b") })
     e:choose("left")
-    check("final por escolha", e.state.ending == "special")
+    check("ending by choice", e.state.ending == "special")
 end
 
 do
@@ -88,7 +88,7 @@ do
     local cards = { card("a"), card("c", { chain = true }) }
     local e = make(cards)
     e:choose("left")
-    check("chain fora do sorteio", e.state.current ~= "c")
+    check("chain card out of the draw", e.state.current ~= "c")
 end
 
 do
@@ -98,9 +98,9 @@ do
         card("s", { chain = true }),
     })
     e:choose("left")
-    check("agendada não vem antes", e.state.current ~= "s")
+    check("scheduled card not before its day", e.state.current ~= "s")
     e:choose("left")
-    check("agendada vem no prazo", e.state.current == "s")
+    check("scheduled card on its day", e.state.current == "s")
 end
 
 do
@@ -116,27 +116,27 @@ end
 do
     local e = make({ card("a"), card("rich", { requires = { min = { funds = 70 } } }), card("b") })
     e:choose("left")
-    check("requires min bloqueia", e.state.current == "b")
+    check("requires min blocks", e.state.current == "b")
 end
 
 do
     local e = make({ card("a"), card("election", { at_day = 12, left = choice({ resolve = "election" }), right = choice({ resolve = "election" }) }), card("b") })
     e:choose("left")
-    check("at_day obrigatório", e.state.current == "election")
+    check("at_day card is mandatory", e.state.current == "election")
     e.state.meters.residents = 80
     e.state.meters.funds = 20
     e:choose("left")
-    check("reeleito", e.state.mandate == 2 and e.state.day == 0 and not e.state.ending)
-    check("marca reeleição", e.state.last.reelected == true)
-    check("medidor volta um terço", e.state.meters.residents == 70 and e.state.meters.funds == 30)
-    check("dificuldade sobe", e:difficulty() > 1)
+    check("reelected", e.state.mandate == 2 and e.state.day == 0 and not e.state.ending)
+    check("marks the reelection", e.state.last.reelected == true)
+    check("meter goes back a third", e.state.meters.residents == 70 and e.state.meters.funds == 30)
+    check("difficulty goes up", e:difficulty() > 1)
 end
 
 do
     local e = make({ card("election", { at_day = 0, left = choice({ resolve = "election" }), right = choice({ resolve = "election" }) }) })
     e.state.meters.residents = 30
     e:choose("left")
-    check("perde eleição", e.state.ending == "lost")
+    check("loses the election", e.state.ending == "lost")
 end
 
 do
@@ -144,10 +144,10 @@ do
     e.state.mandate = Engine.MAX_MANDATES
     e.state.meters.residents = 90
     e:choose("left")
-    check("vence todos os mandatos", e.state.ending == "all")
-    check("conta o último mandato", Engine.completed_mandates(e.state) == Engine.MAX_MANDATES)
+    check("wins every mandate", e.state.ending == "all")
+    check("counts the last mandate", Engine.completed_mandates(e.state) == Engine.MAX_MANDATES)
     local stats = e:record_ending(Engine.new_stats())
-    check("recorde com todos os mandatos", stats.best_mandates == Engine.MAX_MANDATES)
+    check("record with every mandate", stats.best_mandates == Engine.MAX_MANDATES)
 end
 
 do
@@ -156,62 +156,65 @@ do
     e.state.day = Engine.MANDATE_DAYS
     e.state.meters.residents = 30
     e:choose("left")
-    check("derrota não conta o mandato", Engine.completed_mandates(e.state) == 2)
-    check("dias param no fim do mandato", Engine.total_days(e.state) == 3 * Engine.MANDATE_DAYS)
-    check("mês limitado ao mandato", e:month() == Engine.MANDATE_MONTHS)
+    check("a defeat does not count the mandate", Engine.completed_mandates(e.state) == 2)
+    check("days stop at the end of the mandate", Engine.total_days(e.state) == 3 * Engine.MANDATE_DAYS)
+    check("month capped by the mandate", e:month() == Engine.MANDATE_MONTHS)
 end
 
 do
     local e = make({ card("a", { days = 20, left = choice({ days = 30 }) }), card("b"), card("c") })
     e:choose("left")
-    check("dias da escolha", e.state.day == 30)
+    check("days of the choice", e.state.day == 30)
     e.state.current = "a"
     e.state.used.a = nil
     e:choose("right")
-    check("dias da carta", e.state.day == 50)
+    check("days of the card", e.state.day == 50)
 end
 
 do
     local e = make({ card("a"), card("fixed", { at_day = 12 }) })
     e:choose("left")
-    check("at_day aparece", e.state.current == "fixed")
+    check("at_day card shows up", e.state.current == "fixed")
     e:choose("left")
     e:choose("left")
-    check("sem cartas, at_day não repete", e.state.current == "a")
+    check("without cards, at_day does not repeat", e.state.current == "a")
 end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = -10 } }) }), card("b") })
     e.state.mandate = 3
     e:choose("left")
-    check("efeito negativo escala", e.state.meters.funds == 37)
+    check("negative effect scales", e.state.meters.funds == 37)
 end
 
 do
     local e = make({ card("a", { left = choice({ minutes = "Fez algo." }) }), card("b") })
     e:choose("left")
-    check("ata", #e.state.minutes == 1 and e.state.minutes[1].text == "Fez algo.")
+    check("minutes", #e.state.minutes == 1 and e.state.minutes[1].text == "Fez algo.")
 end
 
 do
     local e = make({ card("a"), card("b") })
     local saved = e:serialize()
     local e2 = make({ card("a"), card("b") })
-    e2:load(saved)
-    check("carrega estado", e2.state.current == saved.current)
+    e2:restore(saved)
+    check("restores the state", e2.state.current == saved.current)
+    check("save has a version", saved.version == Engine.SAVE_VERSION)
+    e:choose("left")
+    check("save is a copy", saved.decisions == 0)
 end
 
 do
     local e = make({ card("a", { left = choice({ effects = { funds = -60 } }) }) })
     e:choose("left")
     local stats = e:record_ending(Engine.new_stats())
-    check("estatísticas", stats.games == 1 and stats.endings.z_funds == 1 and stats.decisions == 1)
+    check("records", stats.games == 1 and stats.endings.z_funds == 1 and stats.decisions == 1)
 end
 
 local title_case = require("sindico_game/ui/title_case")
-check("title case comum", title_case("dar a folga") == "Dar a Folga")
-check("title case acento", title_case("só horário comercial") == "Só Horário Comercial")
-check("title case primeira palavra", title_case("a reforma") == "A Reforma")
+check("title case common", title_case("dar a folga") == "Dar a Folga")
+check("title case accent", title_case("só horário comercial") == "Só Horário Comercial")
+check("title case first word", title_case("a reforma") == "A Reforma")
 
-print(string.format("%d passaram, %d falharam", passed, failed))
+print(string.format("%d passed, %d failed", passed, failed))
 os.exit(failed == 0 and 0 or 1)

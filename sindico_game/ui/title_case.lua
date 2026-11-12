@@ -1,19 +1,16 @@
+local Letters = require("sindico_game/letters")
+
 local LOWERCASE_WORDS = {}
 for word in ("a à ao aos as às até com da das de do dos e em na nas no nos o os ou para por pra que se sem um uma umas uns"):gmatch("%S+") do
     LOWERCASE_WORDS[word] = true
 end
 
-local ACCENTED_UPPER = {
-    ["á"] = "Á", ["à"] = "À", ["â"] = "Â", ["ã"] = "Ã", ["é"] = "É", ["ê"] = "Ê",
-    ["í"] = "Í", ["ó"] = "Ó", ["ô"] = "Ô", ["õ"] = "Õ", ["ú"] = "Ú", ["ç"] = "Ç",
-}
-
 local function capitalize(word)
-    local first = word:sub(1, 2)
-    if ACCENTED_UPPER[first] then
-        return ACCENTED_UPPER[first] .. word:sub(3)
+    local chars = Letters.split(word)
+    if chars[1] then
+        chars[1] = Letters.upper(chars[1])
     end
-    return word:sub(1, 1):upper() .. word:sub(2)
+    return table.concat(chars)
 end
 
 local function title_case(text)

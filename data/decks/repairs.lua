@@ -163,7 +163,7 @@ return {
         },
         right = {
             label = "Abrir a janela",
-            result = "O cheiro desceu até o 11º, e o 1102 pediu indenização pelo gato dele.",
+            result = "O cheiro desceu até o 11º, e o 1102 pediu indenização pelo sofá.",
             effects = { building = -12, residents = -4, patience = 4, funds = 3 },
         },
     },
@@ -385,7 +385,7 @@ return {
         },
         right = {
             label = "Medidor fica",
-            result = "Ela publicou um vídeo de agachamento ao lado do medidor. Ele saiu bem.",
+            result = "Ela publicou um vídeo de agachamento ao lado do medidor. O medidor saiu ótimo.",
             effects = { residents = -3, building = 4, patience = -1 },
         },
     },

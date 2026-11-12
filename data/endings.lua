@@ -91,7 +91,7 @@ return {
         trigger = "election_lost",
         requires = { flags = { "carmem_candidate" } },
         title = "No tempo dela",
-        text = "Dona Carmem voltou com 71% dos votos, um caderno novo e a mesma caneta. Na primeira semana, reativou a regra do capacho de 1998. O prédio está mais organizado e bem menos feliz, e todos dizem que o problema nunca foi ela. Você ouve de longe, sentado na sua sala. Agora o boleto é só boleto.",
+        text = "Dona Carmem voltou com 71% dos votos, um caderno novo e a mesma caneta. Na primeira semana, reativou a regra do capacho de 1998. O prédio está mais organizado e bem menos feliz, e todos dizem que o problema nunca foi ela. Você ouve de longe, sentado na sua sala. Agora o boleto chega certo, e não é mais problema seu.",
     },
     {
         id = "defeat",
@@ -126,7 +126,7 @@ return {
     {
         id = "primavera_hotel",
         title = "Primavera Suítes",
-        text = "Rafael comprou o resto do prédio em contratos que ninguém leu. Você agora é gerente-geral, de crachá dourado, e atende os antigos moradores na recepção quando eles vêm visitar suas memórias. A avaliação é de 3,8 estrelas. A maior reclamação é o elevador. Nelson garante que isso é normal, meu querido.",
+        text = "Rafael comprou o resto do prédio em contratos que ninguém leu. Você agora é gerente-geral, de crachá dourado, e atende os antigos moradores na recepção quando eles vêm visitar suas memórias. A avaliação é de 3,8 estrelas. A maior reclamação é o elevador. Nelson garante que isso é normal.",
     },
     {
         id = "carmem_regency",

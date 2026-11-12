@@ -1,3 +1,4 @@
+-- Renders the README screenshots. Usage: OUTPUT_DIR=docs/screenshots tools/koreader/run_headless.sh tools/koreader/render_screens.lua
 local plugin_dir = assert(os.getenv("PLUGIN_DIR"))
 local out_dir = assert(os.getenv("OUTPUT_DIR"))
 
@@ -21,7 +22,7 @@ local function shot(widget, name)
     widget:paintTo(Screen.bb, 0, 0)
     local path = out_dir .. "/" .. name .. ".png"
     Screen.bb:writePNG(path)
-    print("salvo: " .. path)
+    print("saved: " .. path)
 end
 
 math.randomseed(7)
@@ -35,7 +36,7 @@ game:decide("left")
 game.engine.state.meters.residents = 1
 game:decide("left")
 if not game.engine.state.ending then
-    print("a partida não chegou a um final")
+    print("the game did not reach an ending")
     os.exit(1)
 end
 shot(game, "ending")

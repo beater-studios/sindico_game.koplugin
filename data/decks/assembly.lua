@@ -172,7 +172,7 @@ return {
         },
         right = {
             label = "Troca sem alarde",
-            result = "Prédio iluminado. Ninguém notou nada. Ele nem contou que foi você.",
+            result = "Prédio iluminado. Ninguém notou nada, nem soube que foi ideia sua.",
             effects = { building = 7, funds = -5, residents = -2 },
         },
     },
@@ -262,7 +262,7 @@ return {
         },
         right = {
             label = "Atacar os slides",
-            result = "Você pediu para ver o slide 12 de novo. Foi constrangedor para os dois.",
+            result = "Você achou um erro de soma no slide 12. Ela corrigiu na hora, com um slide 12b.",
             effects = { residents = 4, patience = -6 },
             resolve = "election",
             clear = { "accounts_presented" },

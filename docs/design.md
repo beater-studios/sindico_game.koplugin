@@ -1,143 +1,189 @@
-# O Síndico: design e ferramentas
+# O Síndico: design and tools
 
-Como o jogo funciona por dentro, para quem quer entender o código ou escrever cartas. Para instalar e jogar, veja o [README](../README.md).
+How the game works inside, for anyone who wants to understand the code or write cards. To install and play, see the [README](../README.md). An original Beater Studios card decision game: the player is the newly elected building manager (síndico) of a Brazilian apartment building and answers one request at a time. `sindico_game` is the plugin identifier, chosen to make clear it is a game. The game is in Portuguese: code, file names, card ids, flags and keys are in English, and character names and every text the player sees are in Portuguese.
 
-## Estrutura do plugin
+## Premise
 
-```
-sindico_game.koplugin/
-  _meta.lua, main.lua          registro no KOReader
-  sindico_game/
-    engine.lua                 regras, sem depender do KOReader
-    content.lua                carrega data/
-    ui/screen.lua              telas
-    ui/meter_bar.lua           barra dos medidores
-    ui/title_case.lua          maiúsculas iniciais dos botões
-    screensaver.lua            capa do jogo na tela de descanso
-  data/
-    manifest.lua               lista dos decks
-    characters.lua, endings.lua, help.lua
-    decks/*.lua                cartas
-  assets/                      retratos, ícones SVG, prédio e capa da tela de descanso
-  tools/, tests/, docs/        desenvolvimento, fora do pacote publicado
-```
+You have just been elected building manager of Edifício Primavera, a 12 storey building. Each card is a resident, an employee or a supplier with a request, and you pick one of two answers. The tone is a comedy of manners: recognizable and dry, with no cruelty, no party politics, no real people and no brands.
 
-Código, nomes de arquivo, ids de cartas, flags e chaves em inglês. Nomes de personagens e todo texto exibido, em português. O nome do jogo é **O Síndico**; `sindico_game` é o identificador do plugin, escolhido para deixar claro que é um jogo.
+## Rules
 
-## Premissa
+- **Four meters**, from 0 to 100, starting at 50: **Moradores** (residents, `residents`: approval), **Caixa** (funds, `funds`: the building's money), **Prédio** (building, `building`: the state of the construction) and **Paciência** (patience, `patience`: your sanity).
+- **Any meter at 0 ends the game**, with its own ending. A high value never loses the game: a meter very high only unlocks specific cards (full funds draw suspicion and requests for works, for example).
+- **Time:** each decision moves 12 days forward, unless the card says otherwise. A term (mandate) has 720 days.
+- **Meetings:** the accounts meeting on day 360 and the election on day 720. At the election, Residents must be at 50 or more for a reelection.
+- **Terms:** at each reelection, the meters move a third of the way back to 50, the cards go back to the deck and negative effects get 15% stronger. Winning 5 terms leads to the manager for life ending.
+- **Memory:** decisions set facts (flags) that unlock later cards and schedule consequences, sometimes months later.
+- **Minutes (ata):** the record of notable decisions (the `minutes` field of the choices, about a quarter of them), with the term and month. It can be read during the game, from the card footer, and on the ending screen. It sums up the story of the game.
+- **Gallery:** the endings found are kept between games, with the records. The record counts completed terms, including the last one in a win, and the days of each term stop at 720.
 
-Você acaba de ser eleito síndico do Edifício Primavera, um prédio de 12 andares. Cada carta é um morador, funcionário ou fornecedor com um pedido, e você decide por uma de duas respostas. O tom é comédia de costumes: reconhecível, seco, sem crueldade, sem política partidária, sem pessoas reais nem marcas.
+## Card format
 
-## Regras
-
-- **Quatro medidores**, de 0 a 100, começando em 50: **Moradores** (aprovação), **Caixa** (dinheiro do condomínio), **Prédio** (estado da construção) e **Paciência** (a sua sanidade).
-- **Chegar a 0 em qualquer medidor encerra o jogo**, com um final próprio. Não há perda por valor alto: medidor muito alto só libera cartas específicas (por exemplo, caixa cheio atrai desconfiança e pedidos de obra).
-- **Tempo:** cada decisão avança 12 dias, salvo indicação da carta. Um mandato tem 720 dias.
-- **Assembleias:** prestação de contas no dia 360 e eleição no dia 720. Na eleição, é preciso ter Moradores em 50 ou mais para ser reeleito.
-- **Mandatos:** a cada reeleição, os medidores voltam um terço do caminho para 50, as cartas voltam ao baralho e os efeitos negativos ficam 15% mais fortes. Vencer 5 mandatos leva ao final de síndico vitalício.
-- **Memória:** decisões marcam fatos (flags) que liberam cartas futuras e agendam consequências, às vezes meses depois.
-- **Ata:** registro das decisões marcantes (o campo `minutes` das escolhas, cerca de um quarto delas), com mandato e mês. Dá para ler durante o jogo, pelo rodapé da carta, e na tela de final. É o resumo da história da partida.
-- **Progresso:** o jogo salva a cada decisão em `koreader/settings/sindico_game.lua`, com a partida e os recordes. Ao reabrir, o botão Continuar retoma de onde parou.
-- **Galeria:** os finais descobertos ficam guardados entre partidas, junto com os recordes. O recorde conta os mandatos completos, incluindo o último numa vitória, e os dias de cada mandato param em 720.
-
-## Formato das cartas
-
-Os decks ficam em `data/decks/` como tabelas Lua puras, carregadas em ambiente isolado. `data/manifest.lua` lista os arquivos de cartas.
+The decks are in `data/decks/` as plain Lua tables, loaded in an empty environment. `data/manifest.lua` lists the deck files.
 
 ```lua
 {
-    id = "chickens_302",            -- único, snake_case, em inglês
-    char = "neide",                 -- chave em data/characters.lua
+    id = "chickens_302",            -- unique, snake_case, in English
+    char = "neide",                 -- key in data/characters.lua
     text = "O vizinho de cima está criando galinhas na varanda. Ou você resolve, ou eu resolvo.",
     left = {
-        label = "Multar",           -- rótulo do botão
-        result = "A multa chegou. As galinhas ficaram.",  -- aparece no topo da carta seguinte
+        label = "Multar",           -- button label
+        result = "A multa chegou. As galinhas ficaram.",  -- shown at the top of the next card
         effects = { funds = 5, residents = -5 },           -- residents, funds, building, patience
-        set = { "chicken_war" },                           -- flags a ligar (opcional)
-        clear = { "x" },                                  -- flags a desligar (opcional)
-        next = "another_card",                             -- carta seguinte imediata (opcional)
-        schedule = { card = "egg_in_elevator", days = 60 }, -- consequência agendada (opcional)
-        minutes = "Multou o criador de galinhas do 402.",  -- entra na ata (opcional)
-        ending = "ending_id",                               -- encerra o jogo (opcional)
-        days = 30,                                          -- dias que esta escolha consome (opcional, vale mais que o da carta)
+        set = { "chicken_war" },                           -- flags to set (optional)
+        clear = { "x" },                                   -- flags to clear (optional)
+        next = "another_card",                             -- the very next card (optional)
+        schedule = { card = "egg_in_elevator", days = 60 }, -- scheduled consequence (optional)
+        minutes = "Multou o criador de galinhas do 402.",  -- goes into the minutes (optional)
+        ending = "ending_id",                               -- ends the game (optional)
+        days = 30,                                          -- days this choice takes (optional, wins over the card's)
     },
     right = { label = "Conversar antes", result = "...", effects = { patience = -8 } },
-    requires = {                    -- opcional
+    requires = {                    -- optional
         flags = { "a" }, not_flags = { "b" },
         min = { funds = 70 }, max = { residents = 30 },
         day_min = 100, day_max = 500, mandate_min = 2,
     },
-    weight = 1,                     -- chance relativa no sorteio (padrão 1)
-    days = 12,                      -- dias que a decisão consome (padrão 12)
-    chain = true,                   -- só aparece por next ou schedule, nunca no sorteio
-    at_day = 360,                   -- carta obrigatória a partir desse dia do mandato
-    once_ever = true,               -- só aparece uma vez em toda a partida
+    weight = 1,                     -- relative chance in the draw (1 by default)
+    days = 12,                      -- days the decision takes (12 by default)
+    chain = true,                   -- only comes through next or schedule, never in the draw
+    at_day = 360,                   -- mandatory card from this day of the term on
+    once_ever = true,               -- shows up only once in the whole game
 }
 ```
 
-Uma carta aparece no máximo uma vez por mandato. A carta de eleição usa `resolve = "election"` nas duas escolhas.
+A card shows up at most once per term. The election card has `resolve = "election"` on both choices.
 
-**Limites de texto,** conferidos pelo validador: `text` até 240 caracteres, `label` até 22, `result` até 90, `minutes` até 80.
+**Text limits,** checked by the validator in letters: `text` up to 240, `label` up to 22, `result` up to 90, `minutes` up to 80, and the `text` of endings up to 420. What decides whether a text fits is the measurement with the screen font, in `check_layout.lua`.
 
-**Finais** (`data/endings.lua`):
+**Characters** (`data/characters.lua`): `{ neide = { name = "Dona Neide", role = "moradora do 302" } }`, with the portrait in `assets/portraits/<id>.png`. **How to play** (`data/help.lua`): a list of `{ title = "...", text = "..." }`.
+
+**Endings** (`data/endings.lua`):
 
 ```lua
 { id = "bankruptcy", trigger = "zero:funds", title = "...", text = "...", requires = { flags = {...}, not_flags = {...} } }
 ```
 
-A tela de final mostra o prédio inteiro nos finais sem `trigger` e em `all_mandates`, e o prédio rachado nos demais. `good = true` ou `good = false` muda isso para um final específico. O final `no_cards` só entra na contagem da galeria depois de alcançado.
+The ending screen shows the whole building for endings without a `trigger` and for `all_mandates`, and the cracked building for the others. `good = true` or `good = false` changes that for one ending. The `no_cards` ending only counts in the gallery after it is reached.
 
-`trigger` é um de `zero:residents`, `zero:funds`, `zero:building`, `zero:patience`, `election_lost`, `all_mandates`, `no_cards`, ou nenhum (quando o final só é alcançado por `ending` numa escolha). Para o mesmo gatilho, vale o primeiro da lista cujos requisitos batem, então os específicos vêm antes do genérico.
+`trigger` is one of `zero:residents`, `zero:funds`, `zero:building`, `zero:patience`, `election_lost`, `all_mandates`, `no_cards`, or none (when the ending is only reached through `ending` in a choice). For the same trigger, the first ending in the list whose requirements match wins, so the specific ones come before the generic one.
 
-## Interface
+## Screens
 
-- Medidores no topo, com ícones em SVG no mesmo estilo (`assets/icons/`) e setas depois de cada decisão: uma seta para mudança pequena, duas para 10 pontos ou mais.
-- Rótulos dos botões das cartas em maiúsculas iniciais, aplicadas na tela, com palavras curtas como "de" e "a" em minúsculas. Nos arquivos de cartas, os rótulos ficam como frase comum.
-- Galeria, ata, como jogar e sobre usam a mesma tela de lista paginada, com cada item em sua própria caixa. Muda de página pelos botões ou deslizando o dedo.
-- Na tela de título, a imagem do prédio se ajusta ao número de botões, então nada fica para fora.
-- O jogo é sempre em retrato. Aberto em paisagem, ele gira a tela e restaura a rotação ao fechar; pedidos de rotação durante a partida são ignorados.
-- **Tela de descanso:** se o aparelho dorme com o jogo aberto e a tela de descanso do KOReader está no modo de capa do livro, aparece `assets/screensaver.png` no lugar. A troca entra embrulhando `Screensaver.setup` do KOReader: ele escolhe a imagem como sempre, e o jogo só a troca quando a tela do Síndico é a janela de tela cheia no topo. Nenhuma configuração é gravada, então fechar o jogo devolve a capa do livro. Ao desligar, ao reiniciar ou em outro modo, nada muda. A imagem tem 1200x1600, o dobro de 600x800, para ficar nítida em telas maiores; nas de 600x800, o KOReader a reduz pela metade.
+- The meters at the top, with SVG icons in a single style (`assets/icons/`) and arrows after each decision: one arrow for a small change, two for 10 points or more.
+- Card choice labels in title case, applied on screen, with short words such as "de" and "a" in lowercase (`ui/title_case.lua`, with `letters.lua` for accented capitals). In the card files, labels are written as plain phrases.
+- The gallery, the minutes, how to play and About share one paged list screen, with each item in its own box. Pages turn with the buttons or a swipe.
+- On the title screen, the building picture fits the number of buttons, so nothing is pushed off the screen.
+- Always in portrait (`portrait.lua`). Opened in landscape, the game turns the screen and gives the rotation back on closing, also when opening fails; rotation requests during the game are ignored. An opening that fails shows a notice, and the error goes to the KOReader log.
+- **E-ink updates:** each layout (title, card, ending, list) is a kind in the `refresh.lua` counter, with a limit of 8. Changing layout flashes the screen; a decision or a page turn updates without a flash, and the ninth update in a row flashes. A reelection and waking up the device flash too.
+- **Back key,** on devices with keys: from a card and from the lists opened on the home screen to the home screen, from the minutes to where they were opened, from an ending to the home screen, and from the home screen it closes the game. KOReader's `Close` event only closes the window.
+- **Sleep screen:** if the device sleeps with the game open and the KOReader sleep screen is set to the book cover, `assets/screensaver.png` shows up instead. It works by wrapping KOReader's `Screensaver.setup`: KOReader chooses the image as usual, and the game only swaps it when its screen is the full-screen window on top. No setting is written, so closing the game brings the book cover back. Powering off, restarting or any other mode changes nothing. The image is 1200x1600, twice 600x800, to stay sharp on larger screens; on 600x800 screens KOReader halves it.
 
-## Ferramentas
+## Structure
 
-Todas rodam a partir da raiz do repositório.
+```
+sindico_game.koplugin/
+  _meta.lua, main.lua          KOReader registration
+  sindico_game/
+    engine.lua                 rules and reading back saves, independent of KOReader
+    content.lua                loads data/
+    ui/screen.lua              every screen
+    ui/meter_bar.lua           meter bar
+    ui/title_case.lua          title case for the choice labels
+    screensaver.lua            game cover on the sleep screen
+    portrait.lua               portrait while open, rotation given back on close
+    refresh.lua                chooses between updates without a flash and full ones
+    saved_state.lua            defaults, lists and protected restore for saves
+    letters.lua                UTF-8 letters: split, accents and case
+  data/
+    manifest.lua               list of decks
+    characters.lua, endings.lua, help.lua
+    decks/*.lua                cards
+  assets/                      portraits, SVG icons, the building and the sleep screen cover
+  tools/, tests/, docs/        development, outside the published package
+```
 
-Só com `luajit` (são as que rodam na CI):
+`portrait.lua`, `refresh.lua`, `saved_state.lua`, `letters.lua`, `screensaver.lua`, `tools/package_lib.sh`, `tools/data_check.lua`, the `run_*.sh`, `check_all_sizes.sh`, `fuzz.lua` and the `check_*.lua` of `tools/koreader` other than `check_layout.lua`, and the two workflows are shared by the Beater Studios plugins and copied unchanged: each starts with a `Pattern` comment, and a change goes to all plugins at once. What is only O Síndico's in `tools/koreader` is `check_layout.lua`, `fuzz_ui.lua` and `render_screens.lua`.
 
-- `luajit tools/validate.lua`: confere referências, limites de texto, alcançabilidade, chaves desconhecidas (um erro de digitação como `min_day` seria ignorado pelo motor), números inteiros, as cartas de eleição e os retratos dos personagens.
-- `luajit tools/simulate.lua [partidas]`: joga milhares de partidas com escolhas aleatórias e mostra duração, finais e cartas nunca vistas.
-- `luajit tests/engine_spec.lua`: testes do motor.
+## Saved state
 
-Com uma cópia do KOReader para desktop, indicada em `KOREADER_DIR` (a pasta que contém `luajit` e `reader.lua`; no Mac, `KOReader.app/Contents/koreader`):
+Everything lives in `koreader/settings/sindico_game.lua`, written with `flush` after every decision:
 
-- `tools/koreader/run_emulator.sh`: abre o KOReader numa janela de 600x800, com o plugin carregado. O jogo fica em Ferramentas. As configurações ficam em `.ko-home/`.
-- `tools/koreader/check_all_sizes.sh`: mede todos os textos contra a tela, joga 40 partidas pela interface e confere a abertura em paisagem, em quatro tamanhos de tela. Rodar antes de cada versão.
-- `tools/koreader/run_headless.sh <script.lua> [largura] [altura] [dpi]`: roda um script sem janela. Com `OUTPUT_DIR` definido, `tools/koreader/check_layout.lua` salva as telas em PNG ali, e `tools/koreader/check_screensaver.lua` confere quando a capa do jogo entra na tela de descanso e salva a tela resultante.
-- `OUTPUT_DIR=docs/screenshots tools/koreader/run_headless.sh tools/koreader/render_screens.lua`: atualiza as capturas de tela do README.
+| Key | Contents |
+|---|---|
+| `game` | the game in progress: `version`, `meters`, `day`, `mandate`, `decisions`, `current` (the card on screen), `used` and `used_ever` (cards seen in this term and in the whole game), `flags`, `queue` (scheduled cards and their day), `minutes`, `last` (the result and meter changes of the last decision) and `last_char` |
+| `stats` | the records and the gallery: games, decisions, best terms, best days and how many times each ending was seen |
 
-Outras:
+The saved game is a copy of the engine state, so later moves never change what was handed to the settings. `Engine:restore` reads it back checking every part: invalid meters (a meter at zero included), day or term drop the game, cards that left the content are removed from the used cards and the queue, the minutes and the last result are read item by item, and a current card that left is drawn again. It runs inside `SavedState.restore`, so a save that slips through the checks is dropped and the screen still opens. A dropped game leaves the save, and the records stay. `Engine.restore_stats` reads the records field by field, so a field added later gets its default in an old save. A finished game leaves the save, so Continue never reopens an ending. `version` goes up only when a field changes meaning; games saved by 1.0.x have none and count as version 1. `tests/saves/<version>.lua` holds real saves of published versions, and `tests/state_spec.lua` and `check_layout.lua` open each of them.
 
-- `python3 -I tools/make_art.py`: gera os retratos e o prédio em `assets/`. Precisa do Pillow. Com `KOREADER_DIR`, `python3 -I tools/make_art.py screensaver` gera a capa da tela de descanso, com a Noto Serif do KOReader. Este script guarda a arte como código de desenho, por isso fica sob a licença do conteúdo (`NOTICE`). Os ícones são SVG escritos à mão, em `assets/icons/`.
-- `tools/package.sh`: gera `dist/sindico_game.koplugin.zip` e o `.sha256`, só com os arquivos que o jogo usa e os de licença.
+## Tools
 
-O emulador não mostra o que é próprio do e-ink nem a velocidade do aparelho: a conferência final é num aparelho real.
+- `sh tools/check.sh`: every check that runs without KOReader, the same in CI: `tools/validate.lua`, the tests, `tools/simulate.lua 1000` and the package. The release runs `sh tools/check.sh release`, which does the same.
+- `luajit tools/validate.lua`: checks the hand-written data with `tools/data_check.lua`: unknown keys (a typo such as `min_day` would be ignored by the engine), whole numbers, text limits in letters, references in both directions (cards, endings, characters and flags), reachability, the election cards, a generic ending for each trigger, the characters, the help and the portraits. It loads the data through the game's own `content.lua`.
+- `luajit tools/simulate.lua [games]`: plays thousands of games with random and careful choices and shows how long they last, the endings reached and the cards never seen.
+- `luajit tests/engine_spec.lua`: engine tests (effects, draws, chains, scheduled cards, requirements, elections, terms, minutes, records and title case).
+- `luajit tests/state_spec.lua`: saving and restoring, content that left, damaged saves, old records and the saves of published versions in `tests/saves/`.
+- `sh tools/package.sh`: builds `dist/sindico_game.koplugin.zip` and its checksum with the steps of `tools/package_lib.sh`. Requires `LICENSE`, `NOTICE` and the cover, stops if a file the code loads is missing from the package, and the same files always give the same zip, byte for byte.
+- With `KOREADER_DIR` pointing to a desktop KOReader (the folder with `luajit` and `reader.lua`; on a Mac, `KOReader.app/Contents/koreader`), from the plugin folder:
+  - `tools/koreader/run_emulator.sh` opens the game in a 600x800 window, with the virtual keyboard on and its settings in `.ko-home`.
+  - `tools/koreader/check_all_sizes.sh` runs `check_layout.lua` at four screen sizes: every card, label, result and ending measured with the screen fonts, 40 games played through the screen, the version on the About screen, a game resumed in a new screen, the refresh modes, the Back key and the `Close` event, and every save in `tests/saves/` and a damaged one opened through the screen.
+  - `tools/koreader/run_headless.sh tools/koreader/check_rotation.lua` opens the game with KOReader in landscape and checks portrait, the ignored rotation and the rotation given back, also when opening fails.
+  - `tools/koreader/run_headless.sh tools/koreader/fuzz_ui.lua` sends random taps, holds and swipes to the home screen, a card, an ending, the gallery, the minutes, how to play and About, with a paint after each, deciding by a swipe one step in three on a card. An error prints the command that repeats it (`SEED`, `ACTIONS`, `ONLY`).
+  - `tools/koreader/run_headless.sh tools/koreader/check_screensaver.lua` checks when the game cover replaces the sleep screen image.
+  - With `OUTPUT_DIR`, the scripts save screenshots; `OUTPUT_DIR=docs/screenshots tools/koreader/run_headless.sh tools/koreader/render_screens.lua` makes the README ones.
+- `python3 -I tools/make_art.py` draws the portraits and the building in `assets/`. Needs Pillow. It holds the art as drawing code, so it is under the content license (`NOTICE`). The icons are hand-written SVG, in `assets/icons/`.
+- `KOREADER_DIR=<desktop KOReader> python3 -I tools/make_brand_art.py` draws the icon, the README banner and the GitHub social preview (`docs/social-preview.png`) from the README screenshots, in the same style as the other Beater Studios plugins. Run `render_screens.lua` first. Needs Pillow. With `screensaver` as argument it draws `assets/screensaver.png` instead, in the same style.
 
-## Como publicar uma versão
+The emulator does not show what is specific to e-ink, nor the device speed: the final check is on a real device.
 
-1. Atualizar `version` em `_meta.lua` e criar a seção da versão em `CHANGELOG.md`, no formato `## [1.2.3]`.
-2. Rodar `tools/koreader/check_all_sizes.sh` e testar num aparelho.
-3. Publicar a release `v1.2.3` no GitHub, criando a tag junto. O workflow `release.yml` confere se a tag bate com o `_meta.lua`, roda as verificações e anexa o zip e o checksum à release. Se as notas da release ficarem vazias, ele as preenche com a seção do `CHANGELOG.md`. O workflow usa a versão de `release.yml` do commit da tag, então a tag precisa ser criada depois do push. Se ele falhar por causa do código, apagar a release e a tag, corrigir, enviar e publicar de novo. Se a falha for passageira, basta rodá-lo de novo: o anexo é substituído, não duplicado.
+## Content
 
-## Conteúdo
+266 cards in 8 decks (`assembly`, `residents`, `repairs`, `money`, `front_desk`, `arcs`, `meters`, `veteran`), 18 characters, 15 arcs with scheduled consequences and 25 endings, 24 of which count in the gallery.
 
-266 cartas em 8 decks (`assembly`, `residents`, `repairs`, `money`, `front_desk`, `arcs`, `meters`, `veteran`), 18 personagens, 15 arcos com consequências agendadas e 25 finais, dos quais 24 contam na galeria. Retratos, ícones e o prédio são desenhados por código em `tools/make_art.py`.
+With 5,000 simulated games, a random player lasts about 38 decisions (median) and seldom gets past the first term; a player who looks after the meters usually reaches the 4th or 5th term and wins them all in about 11% of the games. The `no_cards` ending is only a safety net and does not show up in practice.
 
-Simulação com 5.000 partidas: um jogador aleatório dura cerca de 38 decisões (mediana) e raramente passa do primeiro mandato; um jogador que cuida dos medidores chega em geral ao 4º ou 5º mandato e vence todos em cerca de 11% das partidas. O final de `no_cards` é só rede de segurança e não aparece na prática.
+## Characters
 
-## Cuidados ao escrever cartas
+Each character has a voice of their own, kept in every card and result. The humor comes from that voice meeting an ordinary building problem, and it should be clear on a first read: a concrete detail beats a clever closing line.
 
-- Cartas `at_day` disparam em sequência depois que uma variante é usada, porque o motor só marca a carta específica. Variantes de uma mesma assembleia usam uma flag própria, ligada na prestação de contas e limpa na eleição.
-- Se não houver mais cartas elegíveis, o motor libera de novo as cartas comuns já usadas no mandato, mas nunca as `at_day`.
-- A fila de `schedule` é zerada na reeleição. Cartas que abrem arcos têm `day_max` e `once_ever` para o desfecho caber no mandato.
-- `clear` roda antes de `resolve_election`. Para o final de derrota variar com uma flag, limpe a flag numa carta do mandato seguinte, não na eleição.
-- Escolhas que levam a final especial têm efeitos ruins de propósito, senão o jogador cuidadoso as prefere.
+| Character | Voice |
+|---|---|
+| Seu Osmar, accountant | Anxious and exact: amounts to the cent, percentages, "calculei", fear said out loud, "o senhor". |
+| Márcia, deputy manager | Corporate jargon (benchmark, roadmap, alinhados, case), polite ambition, keeps a note of everything you refuse. |
+| Seu Valdir, caretaker | Practical and modest, fixes with whatever is at hand (a popsicle stick, a nylon stocking, a bucket), "o senhor". |
+| Dona Neide, 302 | Gossip and surveillance, her notebook, knows everyone's business and threatens to use it. |
+| Dona Carmem, former manager | "No meu tempo" and "meu filho", her 1998 notebook, keys to everything, wants the post back. |
+| Kleber, day doorman | Honest without a filter: tells residents and visitors exactly what he thinks, "o senhor". |
+| Pri, night doorwoman | Calm and dry, exact times after midnight, "já vi coisa pior". |
+| Seu Ademir, 601 | Numbered rules and times to the minute, formal complaints in two copies. |
+| Pedrinho, 507 | Short words and fragments; "tá" is the whole answer. |
+| Nelson, elevator technician | "Isso é normal", always, with a quote for an upgrade. |
+| Dr. Rogério, 801 | Legal register, invented laws and precedents, notifies everything. |
+| Rafael, 902 | "Meu querido", friendly schemes with a cut for himself. |
+| Tia Lurdes, 105 | "Meu bem", sweet pressure, offers cake before you answer. |
+| Capitã Renata, firefighters | Deadlines, "não é pedido", writes everything down. |
+| Professora Yara, 404 | Dignity, art and her brooch; protests in music. |
+| Beto, Sunday barbecue | "Chefe", meat as diplomacy, the smoke is part of the experience. |
+| Jéssica, 1204 | Followers, content and partnerships, everything is a video. |
+| Almirante, the cat | Never speaks: the cards describe him, and he always wins. |
+
+Residents without a card of their own (Dona Lúcia of the 903, the chickens of the 402, the 701 and his ladders) come back across cards; keep their details consistent.
+
+## Writing cards
+
+- `at_day` cards fire in a row once one variant is used, because the engine only marks that specific card. Variants of the same meeting use a flag of their own, set at the accounts meeting and cleared at the election.
+- When no eligible card is left, the engine releases the common cards already used in the term again, but never the `at_day` ones.
+- The `schedule` queue is emptied at a reelection. Cards that open arcs have `day_max` and `once_ever`, so the outcome fits in the term.
+- `clear` runs before `resolve_election`. For the defeat ending to depend on a flag, clear the flag in a card of the next term, not at the election.
+- Choices that lead to a special ending have bad effects on purpose, otherwise the careful player would prefer them.
+
+## License
+
+The code is under GPL-3.0, version 3 only. The content (cards, characters, story and art: `data/`, `assets/`, `docs/screenshots/`, `docs/brand/`, `docs/social-preview.png` and `tools/make_art.py`) is under CC BY-NC-SA 4.0. Details in `NOTICE`.
+
+## How to release a version
+
+1. Update `version` in `_meta.lua` and add the version section to `CHANGELOG.md`, as `## [1.2.3]`.
+2. Run `sh tools/check.sh`, the emulator checks (`check_all_sizes.sh`, `check_rotation.lua`, `fuzz_ui.lua` and `check_screensaver.lua`) and test on a device.
+3. If the version changes the save format or the cards, save a game with the published version in the emulator and keep it as `tests/saves/<published version>.lua`.
+4. Publish the `v1.2.3` release on GitHub, creating the tag with it, after the push. The `release.yml` workflow checks the tag against `_meta.lua`, runs `tools/check.sh release`, builds the package and attaches every zip in `dist/` with its checksum. If the release notes are empty, it fills them with the `CHANGELOG.md` section. If it fails because of the code, delete the release and the tag (`gh release delete v1.2.3 --cleanup-tag`), fix it on `main` and publish again.

@@ -85,7 +85,7 @@ return {
         text = "O tapete do elevador diz sexta, síndico, e hoje é terça. Tem gente relaxando antes da hora neste prédio. Ou você compra um novo, ou eu assumo o tapete.",
         left = {
             label = "Comprar tapete",
-            result = "O tapete novo é digital. Mostra terça e pede atualização.",
+            result = "Tapete novo, um para cada dia. Agora o Valdir troca o tapete toda manhã.",
             effects = { funds = -7, residents = 6 },
         },
         right = {
@@ -348,7 +348,7 @@ return {
     {
         id = "yara_tuner",
         char = "yara",
-        text = "O senhor Afonso, afinador de piano, vem há 30 anos e sempre estacionou na vaga do síndico. Sempre, síndico, em respeito à hierarquia das artes. Hoje ele está na sua vaga.",
+        text = "O senhor Afonso, afinador de piano, vem há 30 anos e sempre estaciona na vaga do síndico, em respeito à hierarquia das artes. Ele acabou de chegar, e o senhor está na vaga.",
         left = {
             label = "Liberar a vaga",
             result = "Ele ficou três dias afinando. Você parou na rua e levou multa.",
@@ -613,7 +613,7 @@ return {
         text = "Meu querido, recebi avaliação ruim por causa do seu porteiro. Ele disse ao hóspede que o apartamento 'é pequeno, mas pelo menos o chuveiro é fraco'. Pode dar uma palavrinha?",
         left = {
             label = "Falar com Kleber",
-            result = "Kleber concordou que você está certo e que Rafael está mentindo.",
+            result = "Você falou. Kleber pediu desculpas ao hóspede e confirmou que o chuveiro é fraco.",
             effects = { patience = -6, funds = 4 },
         },
         right = {

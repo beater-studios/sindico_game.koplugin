@@ -1,3 +1,5 @@
+local SavedState = require("sindico_game/saved_state")
+
 local Engine = {}
 Engine.__index = Engine
 
@@ -8,6 +10,7 @@ Engine.MAX_MANDATES = 5
 Engine.START_VALUE = 50
 Engine.ELECTION_MIN = 50
 Engine.DIFFICULTY_STEP = 0.15
+Engine.SAVE_VERSION = 1
 
 local function has_flags(flags, list)
     for _, f in ipairs(list or {}) do
@@ -53,12 +56,12 @@ function Engine.new(opts)
     return self
 end
 
-function Engine:new_game()
+function Engine.new_state()
     local meters = {}
     for _, name in ipairs(Engine.METERS) do
         meters[name] = Engine.START_VALUE
     end
-    self.state = {
+    return {
         meters = meters,
         day = 0,
         mandate = 1,
@@ -73,20 +76,102 @@ function Engine:new_game()
         decisions = 0,
         ending = nil,
     }
+end
+
+function Engine:new_game()
+    self.state = Engine.new_state()
     self.state.current = self:draw()
     return self.state
 end
 
-function Engine:load(state)
-    self.state = state
-    if state and state.current and not self.content.by_id[state.current] then
-        state.current = self:draw()
-    end
-    return state
+-- A copy, so later moves do not change what was handed to the settings.
+function Engine:serialize()
+    local data = SavedState.copy(self.state)
+    data.version = Engine.SAVE_VERSION
+    return data
 end
 
-function Engine:serialize()
-    return self.state
+local function is_whole(value, min, max)
+    return type(value) == "number" and value % 1 == 0 and value >= min and (not max or value <= max)
+end
+
+-- The keys of a saved set ({ id = true }) that pass `keep`.
+local function saved_set(saved, keep)
+    local out = {}
+    for key, value in pairs(type(saved) == "table" and saved or {}) do
+        if value == true and type(key) == "string" and keep(key) then
+            out[key] = true
+        end
+    end
+    return out
+end
+
+-- Restores a saved game in progress. Every part is checked before use, ids that left the content are dropped
+-- and a missing current card is drawn again. Returns nil when the save does not fit, and the caller starts
+-- without it. Saves from 1.0.x have no version and the same format, so they count as version 1.
+function Engine:restore(data)
+    if type(data) ~= "table" or (data.version or 1) ~= Engine.SAVE_VERSION or data.ending ~= nil then
+        return nil
+    end
+    if type(data.meters) ~= "table" or not is_whole(data.day, 0)
+        or not is_whole(data.mandate, 1, Engine.MAX_MANDATES) then
+        return nil
+    end
+    local by_id = self.content.by_id
+    local function known(id) return by_id[id] ~= nil end
+    local s = Engine.new_state()
+    for _, name in ipairs(Engine.METERS) do
+        local value = data.meters[name]
+        if not is_whole(value, 1, 100) then
+            return nil
+        end
+        s.meters[name] = value
+    end
+    s.day, s.mandate = data.day, data.mandate
+    s.decisions = is_whole(data.decisions, 0) and data.decisions or 0
+    s.used = saved_set(data.used, known)
+    s.used_ever = saved_set(data.used_ever, known)
+    s.flags = saved_set(data.flags, function() return true end)
+    -- The saved lists may have holes, and ipairs would stop at the first one.
+    local queue = SavedState.list(data.queue)
+    for i = 1, table.maxn(queue) do
+        local item = queue[i]
+        if type(item) == "table" and known(item.card) and is_whole(item.day, 0) then
+            s.queue[#s.queue + 1] = { card = item.card, day = item.day }
+        end
+    end
+    local minutes = SavedState.list(data.minutes)
+    for i = 1, table.maxn(minutes) do
+        local entry = minutes[i]
+        if type(entry) == "table" and type(entry.text) == "string"
+            and is_whole(entry.mandate, 1) and is_whole(entry.month, 1) then
+            s.minutes[#s.minutes + 1] = { mandate = entry.mandate, month = entry.month, text = entry.text }
+        end
+    end
+    local last = data.last
+    if type(last) == "table" and type(last.result) == "string" then
+        local deltas = {}
+        for _, name in ipairs(Engine.METERS) do
+            if type(last.deltas) == "table" and is_whole(last.deltas[name], -100, 100) then
+                deltas[name] = last.deltas[name]
+            end
+        end
+        s.last = { result = last.result, deltas = deltas, reelected = last.reelected == true or nil }
+    end
+    if type(data.last_char) == "string" then
+        s.last_char = data.last_char
+    end
+    self.state = s
+    if known(data.current) then
+        s.current = data.current
+    else
+        s.current = self:draw()
+    end
+    if not s.current then
+        self.state = nil
+        return nil
+    end
+    return s
 end
 
 function Engine:difficulty()
@@ -297,6 +382,25 @@ end
 
 function Engine.new_stats()
     return { games = 0, decisions = 0, best_mandates = 0, best_days = 0, endings = {} }
+end
+
+-- Saved records, field by field: a field missing from an older save gets its default, and an ending count
+-- that is not a whole number is dropped.
+function Engine.restore_stats(saved)
+    local stats = SavedState.with_defaults(saved, Engine.new_stats())
+    for _, field in ipairs({ "games", "decisions", "best_mandates", "best_days" }) do
+        if not is_whole(stats[field], 0) then
+            stats[field] = 0
+        end
+    end
+    local endings = {}
+    for id, count in pairs(stats.endings) do
+        if type(id) == "string" and is_whole(count, 1) then
+            endings[id] = count
+        end
+    end
+    stats.endings = endings
+    return stats
 end
 
 function Engine:record_ending(stats)

@@ -1,10 +1,20 @@
 local Content = {}
 
+-- Data files run in an empty environment and can only return a table, as tools/data_check.lua loads them.
 local function load_table(path)
     local chunk, err = loadfile(path)
-    if not chunk then error(err) end
+    if not chunk then
+        error(err, 0)
+    end
     setfenv(chunk, {})
-    return chunk()
+    local ok, result = pcall(chunk)
+    if not ok then
+        error(tostring(result), 0)
+    end
+    if type(result) ~= "table" then
+        error(path .. ": should return a table, returned " .. type(result), 0)
+    end
+    return result
 end
 
 function Content.load(dir)

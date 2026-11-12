@@ -106,7 +106,7 @@ return {
         },
         right = {
             label = "Cortar as extras",
-            result = "Às 17h ele larga a chave e vai. O vazamento fica, com hora marcada.",
+            result = "Às 17h ele larga a chave e vai. O que quebrar depois disso espera o dia seguinte.",
             effects = { funds = 9, building = -13 },
             minutes = "Cortou as horas extras do zelador.",
         },
@@ -375,7 +375,7 @@ return {
         },
         right = {
             label = "Mantenho",
-            result = "É seu direito. Direito é o que você repete às 3h da manhã.",
+            result = "Mantida. Dona Carmem agora conta no grupo quanto você ganha por dia.",
             effects = { patience = 5, residents = -8 },
         },
     },

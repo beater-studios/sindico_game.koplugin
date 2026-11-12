@@ -1,4 +1,3 @@
-local bit = require("bit")
 local Blitbuffer = require("ffi/blitbuffer")
 local Button = require("ui/widget/button")
 local CenterContainer = require("ui/widget/container/centercontainer")
@@ -21,10 +20,14 @@ local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
+local logger = require("logger")
 
 local Content = require("sindico_game/content")
 local Engine = require("sindico_game/engine")
 local MeterBar = require("sindico_game/ui/meter_bar")
+local Portrait = require("sindico_game/portrait")
+local Refresh = require("sindico_game/refresh")
+local SavedState = require("sindico_game/saved_state")
 local title_case = require("sindico_game/ui/title_case")
 
 local Device_screen = Device.screen
@@ -32,7 +35,6 @@ local Device_screen = Device.screen
 local SERIF = "noto/NotoSerif-Regular.ttf"
 local SERIF_ITALIC = "noto/NotoSerif-Italic.ttf"
 local SERIF_BOLD = "noto/NotoSerif-Bold.ttf"
-local FULL_REFRESH_EVERY = 10
 local STRONG_DELTA = 10
 
 local METER_LABELS = {
@@ -50,34 +52,51 @@ local Screen = InputContainer:extend{
 }
 
 function Screen:init()
-    -- The layout only fits portrait; odd rotation modes are landscape.
-    local rotation = Device_screen:getRotationMode()
-    if bit.band(rotation, 1) == 1 then
-        self.restore_rotation = rotation
-        Device_screen:setRotationMode(Device_screen.DEVICE_ROTATED_UPRIGHT)
-    end
+    Portrait.open(self, self.setup)
+end
+
+function Screen:settings_path()
+    return DataStorage:getSettingsDir() .. "/sindico_game.lua"
+end
+
+function Screen:setup()
     self.dimen = Geom:new{ x = 0, y = 0, w = Device_screen:getWidth(), h = Device_screen:getHeight() }
     self.width, self.height = self.dimen.w, self.dimen.h
     self.margin = Device_screen:scaleBySize(20)
     self.text_width = self.width - 2 * self.margin
-    self.settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/sindico_game.lua")
-    self.stats = self.settings:readSetting("stats") or Engine.new_stats()
+    self.refresh = Refresh.new(8)
     self.engine = Engine.new({ content = Content.load(self.plugin_dir) })
-    local saved = self.settings:readSetting("game")
-    if saved and not saved.ending then
-        self.engine:load(saved)
-    end
+    self:load_saved()
     self.ges_events = {
         Swipe = { GestureRange:new{ ges = "swipe", range = self.dimen } },
     }
+    if Device:hasKeys() then
+        self.key_events.Back = { { Device.input.group.Back } }
+    end
     self:show_title()
+end
+
+-- The records and the game in progress are read apart: a game that does not fit the current content is
+-- dropped and the records stay.
+function Screen:load_saved()
+    self.settings = LuaSettings:open(self:settings_path())
+    self.stats = Engine.restore_stats(self.settings:readSetting("stats"))
+    local engine = self.engine
+    local restored = SavedState.restore(function(data) return engine:restore(data) end,
+        self.settings:readSetting("game"), logger.warn)
+    if not restored then
+        engine.state = nil
+        self.settings:delSetting("game")
+    end
 end
 
 function Screen:scaled(value)
     return Device_screen:scaleBySize(value)
 end
 
-function Screen:set_content(widget, refresh)
+-- kind names the layout on the screen: the same kind again is a change inside it and is updated without a
+-- flash, a new kind (or every ninth update) flashes the whole screen.
+function Screen:set_content(widget, kind)
     if self[1] then
         self[1]:free()
     end
@@ -91,8 +110,9 @@ function Screen:set_content(widget, refresh)
         height = self.height,
         widget,
     }
+    local mode = self.refresh:mode(kind)
     UIManager:setDirty(self, function()
-        return refresh or "ui", self.dimen
+        return mode, self.dimen
     end)
 end
 
@@ -137,7 +157,7 @@ function Screen:show_title()
         local s = self.engine.state
         buttons[#buttons + 1] = self:menu_button(
             string.format("Continuar (Mandato %d, Mês %d)", s.mandate, self.engine:month()),
-            function() self:show_card("full") end)
+            function() self:show_card() end)
     end
     buttons[#buttons + 1] = self:menu_button("Novo Jogo", function() self:confirm_new_game() end)
     buttons[#buttons + 1] = self:menu_button("Galeria de Finais", function() self:show_gallery() end)
@@ -169,7 +189,7 @@ function Screen:show_title()
         group[#group + 1] = self:centered(button)
         group[#group + 1] = VerticalSpan:new{ width = button_gap }
     end
-    self:set_content(group, "full")
+    self:set_content(group, "title")
 end
 
 function Screen:confirm_new_game()
@@ -187,7 +207,7 @@ end
 function Screen:start_game()
     self.engine:new_game()
     self:save_game()
-    self:show_card("full")
+    self:show_card()
 end
 
 function Screen:save_game()
@@ -269,7 +289,7 @@ function Screen:footer_button(text, callback)
     }
 end
 
-function Screen:show_card(refresh)
+function Screen:show_card()
     self.mode = "card"
     local s = self.engine.state
     local card = self.engine:current_card()
@@ -345,7 +365,7 @@ function Screen:show_card(refresh)
     group[#group + 1] = self:centered(HorizontalGroup:new{
         align = "center",
         self:footer_button("Ata", function()
-            self:show_minutes(s, function() self:show_card("full") end)
+            self:show_minutes(s, function() self:show_card() end)
         end),
         CenterContainer:new{
             dimen = Geom:new{ w = self.text_width - 2 * side_w, h = footer_h },
@@ -357,7 +377,7 @@ function Screen:show_card(refresh)
         self:footer_button("Menu", function() self:show_title() end),
     })
 
-    self:set_content(group, refresh)
+    self:set_content(group, "card")
 end
 
 function Screen:decide(side)
@@ -373,11 +393,11 @@ function Screen:decide(side)
         return
     end
     self:save_game()
-    local refresh = "ui"
-    if s.decisions % FULL_REFRESH_EVERY == 0 or (s.last and s.last.reelected) then
-        refresh = "full"
+    if s.last and s.last.reelected then
+        -- A new mandate arrives with a clean full update.
+        self.refresh:reset()
     end
-    self:show_card(refresh)
+    self:show_card()
 end
 
 function Screen:show_ending(state)
@@ -423,11 +443,13 @@ function Screen:show_ending(state)
     group[#group + 1] = VerticalSpan:new{ width = self:scaled(8) }
     group[#group + 1] = self:centered(self:menu_button("Novo Jogo", function() self:start_game() end))
     group[#group + 1] = VerticalSpan:new{ width = self:scaled(8) }
-    group[#group + 1] = self:centered(self:menu_button("Início", function()
-        self.engine.state = nil
-        self:show_title()
-    end))
-    self:set_content(group, "full")
+    group[#group + 1] = self:centered(self:menu_button("Início", function() self:leave_ending() end))
+    self:set_content(group, "ending")
+end
+
+function Screen:leave_ending()
+    self.engine.state = nil
+    self:show_title()
 end
 
 function Screen:list_item(item)
@@ -501,10 +523,10 @@ function Screen:show_list(opts)
         header_h = header_h,
         footer_h = footer_h,
     }
-    self:show_list_page("full")
+    self:show_list_page()
 end
 
-function Screen:show_list_page(refresh)
+function Screen:show_list_page()
     self.mode = "list"
     local list = self.list
     local group = VerticalGroup:new{ align = "center" }
@@ -561,7 +583,7 @@ function Screen:show_list_page(refresh)
         HorizontalSpan:new{ width = self:scaled(9) },
         page_button("›", 1),
     }, list.footer_h)
-    self:set_content(group, refresh)
+    self:set_content(group, "list")
 end
 
 function Screen:turn_list_page(delta)
@@ -569,7 +591,7 @@ function Screen:turn_list_page(delta)
     local target = list.page + delta
     if target >= 1 and target <= #list.pages then
         list.page = target
-        self:show_list_page("ui")
+        self:show_list_page()
     end
 end
 
@@ -690,14 +712,35 @@ function Screen:close_game()
     UIManager:close(self)
 end
 
-function Screen:onSetRotationMode()
+-- The Back key of devices with buttons goes back one screen, and closes the game from the title.
+function Screen:onBack()
+    if self.mode == "card" then
+        self:show_title()
+    elseif self.mode == "list" then
+        self.list.back()
+    elseif self.mode == "ending" then
+        self:leave_ending()
+    else
+        self:close_game()
+    end
     return true
 end
 
-function Screen:onCloseWidget()
-    if self.restore_rotation then
-        Device_screen:setRotationMode(self.restore_rotation)
+-- KOReader sends Close to every window before it quits (USB mode on a Kobo, closing the window on a computer).
+function Screen:onClose(arg)
+    if not (arg and arg.keep_screensaver) then
+        self:close_game()
     end
+end
+
+function Screen:onResume()
+    self.refresh:reset()
+end
+
+Screen.onSetRotationMode = Portrait.ignore_rotation
+
+function Screen:onCloseWidget()
+    Portrait.close(self)
     UIManager:setDirty(nil, "full")
 end
 

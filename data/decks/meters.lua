@@ -147,7 +147,7 @@ return {
         text = "Estão todos gostando de você, síndico, e isso é perigoso. Por isso, agora o prédio inteiro acha que pode te pedir coisa. A começar por mim: minha sobrinha precisa da vaga da Dona Lúcia.",
         left = {
             label = "Fazer o favor",
-            result = "A sobrinha estacionou. A Dona Lúcia foi falar com a Dona Carmem. Hum.",
+            result = "A sobrinha estacionou. A Dona Lúcia foi reclamar com a Dona Carmem, que adorou.",
             effects = { residents = -6, patience = 7 },
         },
         right = {
@@ -245,7 +245,7 @@ return {
         text = "Almirante, sempre ao lado do poder, agora dorme no capacho da Dona Carmem. Ele passa por você no corredor sem olhar. O prédio inteiro reparou. Dá para sentir o clima mudando.",
         left = {
             label = "Comprar sachê",
-            result = "Ele comeu, e foi embora em seguida. Até o gato tem seu preço, e não é esse.",
+            result = "Ele comeu tudo e voltou para o capacho da Dona Carmem.",
             effects = { funds = -4, patience = -4, residents = 5 },
         },
         right = {
@@ -279,12 +279,12 @@ return {
         text = "Gente, o prédio está lindo! Consegui uma marca de iogurte para fazer um evento na laje, com 200 convidados. Pagam bem. Só que não posso garantir que eles vão usar o elevador direito.",
         left = {
             label = "Liberar",
-            result = "Teve iogurte até no poço. Pagaram mesmo assim, a laje que se vire.",
+            result = "Teve iogurte até no poço do elevador. Pagaram bem, e o Nelson cobrou à parte.",
             effects = { funds = 15, building = -20 },
         },
         right = {
             label = "Sem evento",
-            result = "'Tá bom, então eu vou fazer em outro prédio mais aberto.' Ufa, e droga.",
+            result = "Ela fez no prédio da frente e marcou o nosso em todos os vídeos.",
             effects = { residents = -3, patience = 4, funds = -1 },
         },
     },
@@ -352,7 +352,7 @@ return {
         },
         right = {
             label = "Colocar um tapume",
-            result = "Tapume na porta do 6º. O morador sai agora pelo 5º. Virou exercício.",
+            result = "Tapume na porta do 6º. O morador agora desce no 5º e sobe um andar de escada.",
             effects = { building = 2, residents = -11, funds = 3 },
         },
     },

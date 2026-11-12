@@ -139,7 +139,7 @@ return {
     {
         id = "pri_chair",
         char = "pri",
-        text = "A cadeira da guarita está sem encosto desde que eu entrei. Ela já quebrou três pessoas antes de mim. Uma nova custa R$ 400. Fico acordada do mesmo jeito, só queria saber.",
+        text = "A cadeira da guarita está sem encosto desde que eu entrei. Ela já estragou a coluna de três porteiros antes de mim. Uma nova custa R$ 400. Fico acordada do mesmo jeito, só queria saber.",
         left = {
             label = "Comprar cadeira",
             result = "Ela agradeceu. Disse que a nova é boa demais e vai dar sono.",
@@ -330,7 +330,7 @@ return {
         },
         right = {
             label = "Pedir paciência",
-            result = "Virou corrente de áudio. Paciência é o que você não tem mais.",
+            result = "Virou briga no grupo, com 60 áudios. As duas continuam subindo juntas.",
             effects = { residents = 5, patience = -7 },
         },
     },
@@ -371,7 +371,7 @@ return {
         text = "O sistema de câmeras grava sobre si mesmo a cada 3 horas. Não temos nada de ontem. Sugiro migrar para o plano com reconhecimento facial. É dado que vira inteligência, síndico.",
         left = {
             label = "Plano novo",
-            result = "O sistema reconhece todos. Confunde Valdir com o Almirante. Bem suspeito.",
+            result = "O sistema confunde o Valdir com o Almirante e abre o portão para os dois.",
             effects = { funds = -9, building = 6, residents = -2 },
             minutes = "Contratou câmeras com reconhecimento facial.",
         },
