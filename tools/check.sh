@@ -3,6 +3,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 luajit tools/validate.lua
+luajit tools/check_texts.lua strings
 for spec in tests/*_spec.lua; do
     luajit "$spec"
 done

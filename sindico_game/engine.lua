@@ -140,23 +140,40 @@ function Engine:restore(data)
             s.queue[#s.queue + 1] = { card = item.card, day = item.day }
         end
     end
+    -- A minutes entry or the last decision keeps the card and the side when the card still has that text, and
+    -- the text it was written with (`text` in the minutes, `result` in the last decision), which is all a save
+    -- before 1.1.0 has and what is shown if the card is gone.
+    local function kept(item, field, text_key)
+        local out = {}
+        if self:choice_field(item, field) ~= nil then
+            out.card, out.side = item.card, item.side
+        end
+        if type(item[text_key]) == "string" then
+            out[text_key] = item[text_key]
+        end
+        return (out.card or out[text_key]) and out or nil
+    end
     local minutes = SavedState.list(data.minutes)
     for i = 1, table.maxn(minutes) do
         local entry = minutes[i]
-        if type(entry) == "table" and type(entry.text) == "string"
-            and is_whole(entry.mandate, 1) and is_whole(entry.month, 1) then
-            s.minutes[#s.minutes + 1] = { mandate = entry.mandate, month = entry.month, text = entry.text }
-        end
-    end
-    local last = data.last
-    if type(last) == "table" and type(last.result) == "string" then
-        local deltas = {}
-        for _, name in ipairs(Engine.METERS) do
-            if type(last.deltas) == "table" and is_whole(last.deltas[name], -100, 100) then
-                deltas[name] = last.deltas[name]
+        if type(entry) == "table" and is_whole(entry.mandate, 1) and is_whole(entry.month, 1) then
+            local item = kept(entry, "minutes", "text")
+            if item then
+                item.mandate, item.month = entry.mandate, entry.month
+                s.minutes[#s.minutes + 1] = item
             end
         end
-        s.last = { result = last.result, deltas = deltas, reelected = last.reelected == true or nil }
+    end
+    local last = type(data.last) == "table" and kept(data.last, "result", "result")
+    if last then
+        last.deltas = {}
+        for _, name in ipairs(Engine.METERS) do
+            if type(data.last.deltas) == "table" and is_whole(data.last.deltas[name], -100, 100) then
+                last.deltas[name] = data.last.deltas[name]
+            end
+        end
+        last.reelected = data.last.reelected == true or nil
+        s.last = last
     end
     if type(data.last_char) == "string" then
         s.last_char = data.last_char
@@ -267,6 +284,19 @@ function Engine:draw()
     return pool[#pool].id
 end
 
+-- A field of the choice a minutes entry or the last decision points to ({ card, side }), or nil.
+function Engine:choice_field(item, field)
+    local card = type(item) == "table" and self.content.by_id[item.card]
+    local choice = card and (item.side == "left" or item.side == "right") and card[item.side]
+    return choice and choice[field]
+end
+
+-- The text to show for a minutes entry or the last decision: the card's, in the current language, or the text
+-- kept with it when the card is gone.
+function Engine:choice_text(item, field, kept)
+    return self:choice_field(item, field) or (type(item) == "table" and item[kept]) or nil
+end
+
 function Engine:current_card()
     return self.state.current and self.content.by_id[self.state.current]
 end
@@ -351,15 +381,19 @@ function Engine:choose(side)
             day = s.day + (choice.schedule.days or Engine.DEFAULT_CARD_DAYS),
         }
     end
+    -- The minutes and the last result keep the card and the side, so they are shown in the current language,
+    -- and also the text, for a card a later version removes and for versions before 1.1.0, which only read it.
     if choice.minutes then
-        s.minutes[#s.minutes + 1] = { mandate = s.mandate, month = self:month(), text = choice.minutes }
+        s.minutes[#s.minutes + 1] = {
+            mandate = s.mandate, month = self:month(), card = card.id, side = side, text = choice.minutes,
+        }
     end
     s.used[card.id] = true
     s.used_ever[card.id] = true
     s.last_char = card.char
     s.decisions = s.decisions + 1
     s.day = s.day + (choice.days or card.days or Engine.DEFAULT_CARD_DAYS)
-    s.last = { result = choice.result, deltas = deltas }
+    s.last = { card = card.id, side = side, result = choice.result, deltas = deltas }
 
     local ending = choice.ending or self:zero_ending()
     if not ending and choice.resolve == "election" then
@@ -400,6 +434,9 @@ function Engine.restore_stats(saved)
         end
     end
     stats.endings = endings
+    if type(stats.newest_ending) ~= "string" or not endings[stats.newest_ending] then
+        stats.newest_ending = nil
+    end
     return stats
 end
 

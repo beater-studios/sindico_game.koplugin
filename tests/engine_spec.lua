@@ -190,7 +190,8 @@ end
 do
     local e = make({ card("a", { left = choice({ minutes = "Fez algo." }) }), card("b") })
     e:choose("left")
-    check("minutes", #e.state.minutes == 1 and e.state.minutes[1].text == "Fez algo.")
+    check("minutes", #e.state.minutes == 1 and e:choice_text(e.state.minutes[1], "minutes", "text") == "Fez algo.")
+    check("last result by card", e:choice_text(e.state.last, "result", "result") == "r")
 end
 
 do
@@ -211,10 +212,11 @@ do
     check("records", stats.games == 1 and stats.endings.z_funds == 1 and stats.decisions == 1)
 end
 
-local title_case = require("sindico_game/ui/title_case")
-check("title case common", title_case("dar a folga") == "Dar a Folga")
-check("title case accent", title_case("só horário comercial") == "Só Horário Comercial")
-check("title case first word", title_case("a reforma") == "A Reforma")
+local sentence_case = require("sindico_game/ui/sentence_case")
+check("sentence case keeps the rest as written", sentence_case("falar com Kleber") == "Falar com Kleber")
+check("sentence case accent", sentence_case("só horário comercial") == "Só horário comercial")
+check("sentence case after an opening sign", sentence_case("¿por qué no?") == "¿Por qué no?")
+check("sentence case number", sentence_case("18h em ponto") == "18h em ponto")
 
 print(string.format("%d passed, %d failed", passed, failed))
 os.exit(failed == 0 and 0 or 1)

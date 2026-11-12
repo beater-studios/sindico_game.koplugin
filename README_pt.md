@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <strong>Você foi eleito síndico. Sentimos muito. Jogo de decisões por cartas para o KOReader, em português.</strong>
+  <strong>Você foi eleito síndico. Sentimos muito. Jogo de decisões por cartas para o KOReader, em português, inglês e espanhol.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/beater-studios/sindico_game.koplugin/releases/latest"><img src="https://img.shields.io/github/v/release/beater-studios/sindico_game.koplugin?style=flat-square&color=111111&label=release" alt="Última release"></a>
   <a href="https://github.com/beater-studios/sindico_game.koplugin/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/beater-studios/sindico_game.koplugin/ci.yml?branch=main&style=flat-square&label=tests" alt="Testes"></a>
   <a href="https://koreader.rocks"><img src="https://img.shields.io/badge/KOReader-2026.07-111111?style=flat-square" alt="Feito para o KOReader 2026.07"></a>
-  <img src="https://img.shields.io/badge/language-PT-111111?style=flat-square" alt="Português">
+  <img src="https://img.shields.io/badge/languages-EN%20%C2%B7%20PT%20%C2%B7%20ES-111111?style=flat-square" alt="Inglês, português e espanhol">
   <a href="NOTICE"><img src="https://img.shields.io/badge/license-GPL--3.0%20%C2%B7%20CC%20BY--NC--SA%204.0-111111?style=flat-square" alt="Licença: GPL-3.0 para o código, CC BY-NC-SA 4.0 para o conteúdo"></a>
 </p>
 
@@ -26,9 +26,10 @@
 
 <table>
   <tr>
-    <td width="33%" align="center"><img src="docs/screenshots/title.png" alt="Tela inicial com o prédio e o menu"><br><sub><b>Início</b></sub></td>
-    <td width="33%" align="center"><img src="docs/screenshots/card.png" alt="Carta do zelador com duas respostas e os quatro medidores"><br><sub><b>Uma carta</b></sub></td>
-    <td width="33%" align="center"><img src="docs/screenshots/ending.png" alt="Tela de final com o prédio rachado"><br><sub><b>Um final</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/pt/title.png" alt="Tela inicial com o prédio, a partida em andamento e o menu"><br><sub><b>Início</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/pt/card.png" alt="Carta com o pedido de um morador, duas respostas e os quatro medidores"><br><sub><b>Uma carta</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/pt/result.png" alt="O resultado da resposta em letra grande, com os medidores que mudaram"><br><sub><b>O que aconteceu</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/pt/ending.png" alt="Tela de final com o prédio rachado e os números da partida"><br><sub><b>Um final</b></sub></td>
   </tr>
 </table>
 
@@ -39,6 +40,7 @@ Você acaba de ser eleito síndico do Edifício Primavera, um prédio de 12 anda
 - **Memória:** suas decisões liberam cartas futuras e voltam a cobrar a conta meses depois.
 - **Conteúdo:** 266 cartas, 18 personagens, 15 arcos e 24 finais para descobrir, guardados numa galeria.
 - **Ata:** o registro das suas decisões marcantes, que resume a história de cada partida.
+- **Do seu jeito:** veja o resultado de cada resposta numa tela própria ou como recado no topo da próxima carta, e deixe a data, a hora e a bateria no canto da tela, nos Ajustes.
 - **Tela de descanso:** se o aparelho dorme com o jogo aberto, aparece a capa do Síndico no lugar da capa do livro. Vale quando a tela de descanso do KOReader mostra a capa do livro.
 - **Sem internet:** funciona offline e não coleta dados. O progresso é salvo a cada decisão.
 
@@ -47,6 +49,8 @@ Você acaba de ser eleito síndico do Edifício Primavera, um prédio de 12 anda
 1. Baixe `sindico_game.koplugin.zip` na [última release](https://github.com/beater-studios/sindico_game.koplugin/releases/latest).
 2. Extraia em `koreader/plugins/`, de modo que exista `koreader/plugins/sindico_game.koplugin/main.lua`.
 3. Reinicie o KOReader. O jogo fica no menu Ferramentas, como **O Síndico**.
+
+O idioma segue o do KOReader: português, inglês ou espanhol. Em qualquer outro idioma, fica em inglês. As piadas foram adaptadas para cada idioma, e o prédio continua no Brasil, com valores em reais.
 
 O progresso fica em `koreader/settings/sindico_game.lua`, e o KOReader guarda a versão anterior ao lado, como `sindico_game.lua.old`. Para desinstalar, apague a pasta do plugin e, se quiser, esses dois arquivos.
 
@@ -73,11 +77,10 @@ O formato das cartas, as regras do motor e as ferramentas estão em [docs/design
 - Feito para o KOReader 2026.07 e para telas sensíveis ao toque, sempre em retrato. Foi desenvolvido para um Kindle básico da 10ª geração (firmware 5.18.1).
 - Layout conferido no emulador em 600x800, 758x1024, 1072x1448 e 1264x1680.
 - Usa só o que vem com o KOReader, sem nada mais para instalar.
-- O jogo está só em português por enquanto. Inglês e espanhol estão nos planos.
 
 ## Desenvolvimento
 
-Com o [LuaJIT](https://luajit.org) e o `zip` instalados, a partir da raiz do repositório, as mesmas conferências da CI: o validador das cartas, os testes, mil partidas simuladas e o pacote.
+Com o [LuaJIT](https://luajit.org) e o `zip` instalados, a partir da raiz do repositório, as mesmas conferências da CI: o validador das cartas (com as traduções), os textos da interface nos três idiomas, os testes, mil partidas simuladas e o pacote.
 
 ```sh
 sh tools/check.sh

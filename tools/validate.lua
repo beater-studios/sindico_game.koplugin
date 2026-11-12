@@ -1,5 +1,8 @@
--- Checks the hand-written data in data/. Usage: luajit tools/validate.lua
+-- Checks the hand-written data in data/ and its translations in data/i18n/<language>/.
+-- Usage: luajit tools/validate.lua [--only <language>/<deck>]
+-- With --only, the translations checked are just that deck file (for translating one deck at a time).
 package.path = "./?.lua;./tools/?.lua;" .. package.path
+local only = arg and arg[1] == "--only" and arg[2] or nil
 local Content = require("sindico_game/content")
 local DataCheck = require("data_check")
 local Engine = require("sindico_game/engine")
@@ -19,7 +22,9 @@ local SCHEDULE = DataCheck.set("card days")
 local ENDING = DataCheck.set("id trigger requires title text good")
 local ENDING_REQUIRES = DataCheck.set("flags not_flags")
 local CHARACTER = DataCheck.set("name role")
-local HELP = DataCheck.set("title text")
+local HELP = DataCheck.set("title text figure")
+local TRANSLATED_HELP = DataCheck.set("title text")
+local FIGURES = DataCheck.set("answers meters")
 local METERS = DataCheck.set(Engine.METERS)
 local RESOLVE = DataCheck.set("election")
 local TRIGGERS = DataCheck.set("election_lost all_mandates no_cards")
@@ -67,6 +72,7 @@ for i, item in ipairs(content.help) do
     if c:table(where, item, HELP) then
         c:text(where .. ".title", item.title, nil, true)
         c:text(where .. ".text", item.text, nil, true)
+        c:one_of(where .. ".figure", item.figure, FIGURES)
     end
 end
 
@@ -205,6 +211,163 @@ for trigger in pairs(TRIGGERS) do
     end
     if not generic then
         c:error("trigger without a generic ending: " .. trigger)
+    end
+end
+
+-- Translations: every text of the cards, endings, characters and help exists in each language, with the same
+-- fields and limits, and Spanish is never a copy of English where Portuguese differs.
+local TRANSLATED_CARD = DataCheck.set("text left right")
+local TRANSLATED_CHOICE = DataCheck.set("label result minutes")
+local LIMITS = { text = 240, label = 22, result = 90, minutes = 80 }
+local DASHES = { "\226\128\148", "\226\128\147" }
+
+local function no_dash(where, value)
+    if type(value) == "string" then
+        for _, dash in ipairs(DASHES) do
+            if value:find(dash, 1, true) then
+                c:error(where .. ": dash in the text")
+            end
+        end
+    end
+end
+
+-- Portuguese texts have no dashes either.
+for _, card in ipairs(valid_cards) do
+    no_dash("card " .. card.id .. ".text", card.text)
+    for _, side in ipairs({ "left", "right" }) do
+        if type(card[side]) == "table" then
+            for field in pairs(LIMITS) do
+                no_dash("card " .. card.id .. "." .. side .. "." .. field, card[side][field])
+            end
+        end
+    end
+end
+
+local function load_layer(where, path)
+    local ok, layer = pcall(Content.load_table, path)
+    if not ok then
+        c:error(where .. ": " .. tostring(layer))
+        return nil
+    end
+    return layer
+end
+
+local manifest = Content.load_table("data/manifest.lua")
+local layers = {}
+for _, lang in ipairs({ "en", "es" }) do
+    layers[lang] = { decks = {} }
+    for _, deck in ipairs(manifest) do
+        if not only or only == lang .. "/" .. deck then
+            local path = "data/i18n/" .. lang .. "/decks/" .. deck .. ".lua"
+            layers[lang].decks[deck] = load_layer(path, path)
+        end
+    end
+    if not only then
+        for _, name in ipairs({ "characters", "endings", "help" }) do
+            local path = "data/i18n/" .. lang .. "/" .. name .. ".lua"
+            layers[lang][name] = load_layer(path, path)
+        end
+    end
+end
+
+local function check_text(where, value, limit, required)
+    c:text(where, value, limit, required)
+    no_dash(where, value)
+end
+
+for _, lang in ipairs({ "en", "es" }) do
+    for deck, layer in pairs(layers[lang].decks) do
+        local ids = {}
+        for _, card in ipairs(valid_cards) do
+            if card.deck == deck then
+                ids[card.id] = true
+                local where = lang .. " card " .. card.id
+                local translated = layer[card.id]
+                if translated == nil then
+                    c:error(where .. ": missing")
+                elseif c:table(where, translated, TRANSLATED_CARD) then
+                    check_text(where .. ".text", translated.text, LIMITS.text, true)
+                    for _, side in ipairs({ "left", "right" }) do
+                        local choice, t = card[side], translated[side]
+                        local w = where .. "." .. side
+                        if type(choice) == "table" and c:table(w, t, TRANSLATED_CHOICE) then
+                            check_text(w .. ".label", t.label, LIMITS.label, true)
+                            check_text(w .. ".result", t.result, LIMITS.result, true)
+                            if choice.minutes ~= nil then
+                                check_text(w .. ".minutes", t.minutes, LIMITS.minutes, true)
+                            elseif t.minutes ~= nil then
+                                c:error(w .. ".minutes: the Portuguese choice has no minutes")
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        for id in pairs(layer) do
+            if not ids[id] then
+                c:error(lang .. " deck " .. deck .. ": card " .. tostring(id) .. " is not in the deck")
+            end
+        end
+    end
+    local characters = layers[lang].characters
+    if characters then
+        for id in pairs(content.characters) do
+            local where = lang .. " character " .. id
+            if c:table(where, characters[id], CHARACTER) then
+                check_text(where .. ".name", characters[id].name, nil, true)
+                check_text(where .. ".role", characters[id].role, nil, true)
+            end
+        end
+    end
+    local endings = layers[lang].endings
+    if endings then
+        for _, ending in ipairs(valid_endings) do
+            local where = lang .. " ending " .. tostring(ending.id)
+            if c:table(where, endings[ending.id], DataCheck.set("title text")) then
+                check_text(where .. ".title", endings[ending.id].title, nil, true)
+                check_text(where .. ".text", endings[ending.id].text, 420, true)
+            end
+        end
+    end
+    local help = layers[lang].help
+    if help then
+        if #help ~= #content.help then
+            c:error(lang .. " help: " .. #help .. " items, Portuguese has " .. #content.help)
+        end
+        for i, item in ipairs(help) do
+            local where = lang .. " help " .. i
+            if c:table(where, item, TRANSLATED_HELP) then
+                check_text(where .. ".title", item.title, nil, true)
+                check_text(where .. ".text", item.text, nil, true)
+            end
+        end
+    end
+end
+
+-- Spanish is not English left untranslated: where the Portuguese text differs from the English one, Spanish
+-- differs from English too.
+local function same_as_english(where, pt, en, es)
+    if type(pt) == "string" and type(en) == "string" and es == en and pt ~= en then
+        c:error(where .. ": Spanish is the same as English")
+    end
+end
+for deck, es_layer in pairs(layers.es.decks) do
+    local en_layer = layers.en.decks[deck]
+    if en_layer then
+        for _, card in ipairs(valid_cards) do
+            local en, es = en_layer[card.id], es_layer[card.id]
+            if card.deck == deck and type(en) == "table" and type(es) == "table" then
+                same_as_english("es card " .. card.id .. ".text", card.text, en.text, es.text)
+                for _, side in ipairs({ "left", "right" }) do
+                    if type(en[side]) == "table" and type(es[side]) == "table" and type(card[side]) == "table" then
+                        for field in pairs(TRANSLATED_CHOICE) do
+                            same_as_english("es card " .. card.id .. "." .. side .. "." .. field,
+                                card[side][field], en[side][field], es[side][field])
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 

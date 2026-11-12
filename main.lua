@@ -3,6 +3,7 @@ local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
 
+local Content = require("sindico_game/content")
 local GameScreensaver = require("sindico_game/screensaver")
 local Screen = require("sindico_game/ui/screen")
 
@@ -30,7 +31,11 @@ function SindicoGame:addToMainMenu(menu_items)
                 UIManager:show(screen)
             else
                 logger.warn("sindico_game: could not open", screen)
-                UIManager:show(InfoMessage:new{ text = "Não foi possível abrir O Síndico. Tente reiniciar o KOReader." })
+                -- The texts may be what failed to load, so there is a fallback in English.
+                local lang = Content.language_from(G_reader_settings and G_reader_settings:readSetting("language"))
+                local ok_strings, strings = pcall(Content.strings, PLUGIN_DIR, lang)
+                local text = ok_strings and strings and strings.open_failed
+                UIManager:show(InfoMessage:new{ text = text or "O Síndico could not open. Try restarting KOReader." })
             end
         end,
     }

@@ -5,10 +5,12 @@ return {
     },
     {
         title = "Como decidir",
+        figure = "answers",
         text = "Deslize o dedo para a esquerda ou para a direita, ou toque num dos botões.",
     },
     {
         title = "Os quatro medidores",
+        figure = "meters",
         text = "Moradores, Caixa, Prédio e Paciência. Se qualquer um chegar a zero, seu mandato acaba ali mesmo. Depois de cada decisão, as setas mostram o que subiu ou desceu; seta dupla é mudança grande.",
     },
     {

@@ -12,6 +12,8 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 ASSETS = os.path.join(ROOT, "assets")
 SCALE = 4
 PORTRAIT = 300
+# Portraits are saved at twice their drawing size, so they stay sharp when the game shows them large.
+PORTRAIT_OUTPUT = 2
 BLACK, DARK, MID, LIGHT, WHITE = 0, 85, 150, 215, 255
 LINE = 9 * SCALE // 4 + 4
 
@@ -47,8 +49,8 @@ class Canvas:
         # Flush with the edges, so nothing drawn under it shows outside.
         self.draw.rectangle([0, 0, self.w - 1, self.h - 1], outline=BLACK, width=SCALE * 3)
 
-    def save(self, path):
-        small = self.image.resize((self.w // SCALE, self.h // SCALE), Image.LANCZOS)
+    def save(self, path, factor=1):
+        small = self.image.resize((self.w * factor // SCALE, self.h * factor // SCALE), Image.LANCZOS)
         small = small.point(lambda v: round(v / 17) * 17)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         small.save(path, optimize=True)
@@ -437,7 +439,7 @@ def portrait(key, p):
     facial_hair(c, p.get("facial"), box)
     extras(c, p)
     c.frame()
-    c.save(os.path.join(ASSETS, "portraits", key + ".png"))
+    c.save(os.path.join(ASSETS, "portraits", key + ".png"), PORTRAIT_OUTPUT)
 
 
 CHARACTERS = {
@@ -496,7 +498,7 @@ def cat():
             c.line([(x_start, y), (x_end, y + dy)], fill=WHITE, width=SCALE * 2)
     c.ellipse(139, 246, 161, 268, fill=LIGHT, width=SCALE * 2)
     c.frame()
-    c.save(os.path.join(ASSETS, "portraits", "almirante.png"))
+    c.save(os.path.join(ASSETS, "portraits", "almirante.png"), PORTRAIT_OUTPUT)
 
 
 def draw_building(width, height, damaged=False, seed=3):

@@ -982,7 +982,7 @@ return {
             minutes = "Autorizou em ata o ensaio de valsa às 14h no 404.",
         },
         right = {
-            label = "Negar pelo regulamento",
+            label = "Citar o regulamento",
             result = "Você citou o item 9. Os dois olharam para você, juntos. Nasceu a pior aliança do prédio.",
             effects = { residents = -7, patience = -5, building = 2 },
         },

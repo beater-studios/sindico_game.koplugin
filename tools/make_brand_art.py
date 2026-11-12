@@ -15,7 +15,7 @@ ICON_SIZE = 1024
 SUPERSAMPLE = 3
 TITLE = "O Síndico"
 TAGLINE = "A card game about running a building."
-DETAILS = ["A decision game for KOReader, in Portuguese.", "Each card is a resident with a request,", "and you pick one of two answers."]
+DETAILS = ["A decision game for KOReader, in English,", "Portuguese and Spanish. Each card is a resident", "with a request, and you pick one of two answers."]
 # The sheet of paper, in icon coordinates, as in the other Beater Studios icons.
 PAGE_LEFT, PAGE_TOP, PAGE_RIGHT, PAGE_BOTTOM, EAR = 222, 130, 802, 894, 170
 # The building, as on the title screen: lit windows white, the others dark, a few half lit.
@@ -164,6 +164,8 @@ def main():
         print("Image generated in assets/screensaver.png")
         return
     icon.save(os.path.join(brand, "icon.png"), optimize=True)
+    # A small copy for the About screen, inside the package.
+    icon.resize((256, 256), Image.LANCZOS).save(os.path.join(ROOT, "assets", "icon.png"), optimize=True)
     draw_header(1280, 400, fonts, icon, {"middle": 1000, "screen_height": 330, "offset": 110, "text": 1, "halftone": 280}).save(os.path.join(brand, "banner.png"), optimize=True)
     draw_header(1280, 640, fonts, icon, {"middle": 960, "screen_height": 430, "offset": 112, "text": 1.02, "halftone": 360, "details": DETAILS}).save(os.path.join(ROOT, "docs", "social-preview.png"), optimize=True)
     print("Images generated in docs/brand and docs/social-preview.png")
