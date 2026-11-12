@@ -90,7 +90,7 @@ Every screen is laid out by `ui/screen.lua` on a canvas (`ui/canvas.lua`) in the
   - **On top of the card:** the next card opens with a note on top, with the portrait of who you answered, your answer, what it led to and the meters that changed. No extra tap.
 - **Ending:** a "new ending" badge the first time, the building (cracked for the bad endings), the title, how many endings were found, the text, the numbers of the game in three tiles and the way on.
 - **Minutes:** a page of a minutes book, with a heading for each term and the month in the margin.
-- **Gallery:** the endings as a collection, three to a row: the endings found as tiles with their title (the newest with a badge) that open the full text, and the others locked, with the icon of the meter whose zero leads to them when there is one.
+- **Gallery:** the endings as a collection, three to a row: the endings found as tiles with their title (the newest with a badge) that open the full text, and the others locked. Every tile has the icon of how its ending is reached: the meter at zero, a ballot box for a lost election, a crown for the full terms, cards for the cards running out and a book for an ending a story leads to (no `trigger`).
 - **How to play:** numbered steps, two of them with an example (the answer buttons and the meters), from the `figure` of each item in `data/help.lua`.
 - **Settings:** the result style, with a small drawing of each, the status strip on or off (`show_status`) and the language, which follows KOReader.
 - **Status strip:** the date, the time (in 12 hours when KOReader is set so) and the battery in the bottom right corner of every screen, read again on each tap and swipe; only the strip is updated, outside the count of updates, and there is no timer.

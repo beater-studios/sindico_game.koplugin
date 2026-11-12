@@ -30,9 +30,11 @@ local ANSWERS_TOP = 640
 local CARD_BOTTOM = 628
 local RESULT_STYLES = { "highlight", "note" }
 local GALLERY_TILES = 12
--- The meter whose zero leads to an ending, for the locked tiles of the gallery.
+-- The icon of each way to reach an ending, in the gallery: the meter that ran out, the lost election, the full
+-- terms, the cards that ran out, and a story (an ending a choice leads to, without a trigger).
 local TRIGGER_ICONS = {
     ["zero:residents"] = "residents", ["zero:funds"] = "funds", ["zero:building"] = "building", ["zero:patience"] = "patience",
+    election_lost = "ballot", all_mandates = "crown", no_cards = "cards",
 }
 
 local Screen = InputContainer:extend{
@@ -349,13 +351,13 @@ function Screen:mini_meters(c, x, y, width, values)
     local cell = width / #Engine.METERS
     for i, key in ipairs(Engine.METERS) do
         local cx = x + (i - 1) * cell
-        c:box(cx, y, cx + 24, y + 24, { fill = WHITE, radius = 12 })
+        -- The icons are black circles, so on the black banner only their white symbol shows.
         c:image(self:asset("icons/" .. key .. ".svg"), cx, y, 24, 24, { alpha = true })
-        c:box(cx + 30, y + 7, cx + cell - 10, y + 17, { border = WHITE, width = 1.5, radius = 5 })
         local value = values[key] or 0
         if value > 0 then
             c:box(cx + 30, y + 7, cx + 30 + (cell - 40) * value / 100, y + 17, { fill = LIGHT, radius = 5 })
         end
+        c:box(cx + 30, y + 7, cx + cell - 10, y + 17, { border = WHITE, width = 1.5, radius = 5 })
     end
 end
 
@@ -654,6 +656,10 @@ function Screen:found_endings()
     return found
 end
 
+function Screen:ending_icon(ending)
+    return self:asset("icons/" .. (TRIGGER_ICONS[ending.trigger or ""] or "story") .. ".svg")
+end
+
 function Screen:ending_good(ending)
     local good = ending.good
     if good == nil then
@@ -846,7 +852,7 @@ function Screen:layout_gallery(tiles, found, index)
         local ending = tile.ending
         if tile.found then
             c:box(x, y, x + tw, y + th, { fill = WHITE, border = BLACK, width = 2.5, radius = 12 })
-            c:image(self:asset(self:ending_good(ending) and "building.png" or "building_damaged.png"), x + 12, y + 14, 42, 52)
+            c:image(self:ending_icon(ending), x + 12, y + 14, 40, 40, { alpha = true })
             c:paragraph(x + 62, y + 14, tw - 72, ending.title, SERIF_BOLD, 15, { align = "left", room = 68, name = "gallery tile" })
             local count = self.stats.endings[ending.id]
             c:text(x + 12, y + th - 26, count == 1 and self.strings.seen_once or string.format(self.strings.seen_many, count),
@@ -860,12 +866,7 @@ function Screen:layout_gallery(tiles, found, index)
             c:hit(x, y, x + tw, y + th, function() self:show_gallery_ending(found, position, index) end)
         else
             c:box(x, y, x + tw, y + th, { fill = PAPER, border = LIGHT, width = 1.5, radius = 12 })
-            local meter = TRIGGER_ICONS[ending.trigger or ""]
-            if meter then
-                c:image(self:asset("icons/" .. meter .. ".svg"), x + tw / 2 - 18, y + 26, 36, 36, { alpha = true })
-            else
-                c:text(x + tw / 2, y + 44, "?", SERIF_BOLD, 34, { anchor = "center", middle = true, color = MID })
-            end
+            c:image(self:ending_icon(ending), x + tw / 2 - 18, y + 26, 36, 36, { alpha = true })
             c:text(x + tw / 2, y + th - 26, self.strings.undiscovered, SANS, 12,
                 { anchor = "center", color = MID, room = tw - 16, name = "gallery tile" })
         end

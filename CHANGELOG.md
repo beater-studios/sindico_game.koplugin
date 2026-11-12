@@ -2,7 +2,7 @@
 
 ## [1.1.0]
 
-- A new look for every screen. The home screen shows the game in progress, the gallery is a collection of the endings found and the ones still locked, the minutes are a page of a minutes book, an ending shows the numbers of the game, and how to play shows examples.
+- A new look for every screen. The home screen shows the game in progress, the gallery is a collection of the endings found and the ones still locked, each with the icon of how it is reached, the minutes are a page of a minutes book, an ending shows the numbers of the game, and how to play shows examples.
 - What a decision led to shows in large type, on a screen of its own after the tap, or as a note on top of the next card: you choose in the new Settings screen.
 - The date, the time and the battery in the corner of every screen, updated with each tap. They can be turned off in Settings.
 - Buttons and headings have only the first letter in capitals.
