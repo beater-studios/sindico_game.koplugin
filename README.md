@@ -63,7 +63,7 @@ Swipe the card to the left or to the right, or tap one of the two answers. After
 
 <br>
 
-- **Reelection:** the meters move a third of the way back to 50, the cards come back and the bad effects get 15% stronger with each term.
+- **Reelection:** the meters move a third of the way back to 50, the cards come back, with the new ones more likely, and the bad effects get 15% stronger with each term.
 - **Consequences:** some answers set facts that unlock other cards, or schedule a card for weeks or months later. A story arc can run through a whole term.
 - **Endings:** a meter at zero, a lost election, a few special answers and the fifth term each have their own endings. The gallery keeps the ones you found and your records between games.
 - **Saved games:** the game is saved after every decision, so **Continue** picks up where you left off. A save from an older version that no longer fits the cards is dropped without losing the gallery.

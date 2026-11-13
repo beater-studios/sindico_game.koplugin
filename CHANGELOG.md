@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.1]
+
+- Fewer repeated cards: a card you have not seen yet in the game is three times as likely to be drawn. In the second term, repeats go from about a quarter of the cards to about one in nine, and the difficulty stays about the same. A game in progress gets this too.
+
 ## [1.1.0]
 
 - A new look for every screen. The home screen shows the game in progress, the gallery is a collection of the endings found and the ones still locked, each with the icon of how it is reached, the minutes are a page of a minutes book, an ending shows the numbers of the game, and how to play shows examples.

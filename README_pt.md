@@ -63,7 +63,7 @@ Deslize a carta para a esquerda ou para a direita, ou toque numa das duas respos
 
 <br>
 
-- **Reeleição:** os medidores voltam um terço do caminho para 50, as cartas voltam ao baralho e os efeitos ruins ficam 15% mais fortes a cada mandato.
+- **Reeleição:** os medidores voltam um terço do caminho para 50, as cartas voltam ao baralho, com as inéditas mais prováveis, e os efeitos ruins ficam 15% mais fortes a cada mandato.
 - **Consequências:** algumas respostas marcam fatos que liberam outras cartas, ou agendam uma carta para semanas ou meses depois. Um arco pode atravessar um mandato inteiro.
 - **Finais:** medidor zerado, eleição perdida, algumas respostas especiais e o quinto mandato têm finais próprios. A galeria guarda os que você descobriu e os seus recordes entre partidas.
 - **Partida salva:** o jogo salva a cada decisão, e o **Continuar** retoma de onde parou. Um save de uma versão anterior que não serve mais às cartas é descartado sem perder a galeria.

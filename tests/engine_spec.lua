@@ -212,6 +212,17 @@ do
     check("records", stats.games == 1 and stats.endings.z_funds == 1 and stats.decisions == 1)
 end
 
+do
+    -- A card not seen yet in the game weighs more in the draw than one seen in an earlier term.
+    local e = make({ card("a", { char = "a" }), card("b", { char = "b", weight = 2 }) })
+    e.state.used_ever.a = true
+    local pool, total = e:pool(nil)
+    local weights = {}
+    for _, item in ipairs(pool) do weights[item.id] = item.weight end
+    check("unseen card weighs more", weights.a == 1 and weights.b == 2 * Engine.UNSEEN_WEIGHT
+        and total == 1 + 2 * Engine.UNSEEN_WEIGHT)
+end
+
 local sentence_case = require("sindico_game/ui/sentence_case")
 check("sentence case keeps the rest as written", sentence_case("falar com Kleber") == "Falar com Kleber")
 check("sentence case accent", sentence_case("só horário comercial") == "Só horário comercial")

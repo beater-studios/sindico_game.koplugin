@@ -10,6 +10,9 @@ Engine.MAX_MANDATES = 5
 Engine.START_VALUE = 50
 Engine.ELECTION_MIN = 50
 Engine.DIFFICULTY_STEP = 0.15
+-- How much likelier a card not seen yet in the game is in the draw. Higher values cut repeats further but hold back
+-- the hard cards that come back every term, which makes later terms easier (measured with the simulation).
+Engine.UNSEEN_WEIGHT = 3
 Engine.SAVE_VERSION = 1
 
 local function has_flags(flags, list)
@@ -247,12 +250,14 @@ function Engine:take_at_day()
     end
 end
 
+-- The cards the draw can pick, with their weights. A card not seen yet in the game weighs UNSEEN_WEIGHT times
+-- more, so a new term brings mostly new cards.
 function Engine:pool(avoid_char)
     local pool, total = {}, 0
     for _, card in ipairs(self.content.cards) do
         if not card.chain and not card.at_day and self:is_eligible(card)
             and (not avoid_char or card.char ~= avoid_char) then
-            local weight = card.weight or 1
+            local weight = (card.weight or 1) * (self.state.used_ever[card.id] and 1 or Engine.UNSEEN_WEIGHT)
             pool[#pool + 1] = { id = card.id, weight = weight }
             total = total + weight
         end

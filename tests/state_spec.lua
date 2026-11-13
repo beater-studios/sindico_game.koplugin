@@ -28,10 +28,16 @@ end
 local function play(e, decisions)
     for _ = 1, decisions do
         if e.state.ending then return end
+        -- The side that leaves the lowest meter highest and does not end the game, so the game lasts whatever
+        -- the draws.
         local card = e:current_card()
-        local side = "left"
-        for name, amount in pairs(card.left.effects or {}) do
-            if e.state.meters[name] + amount < 10 then side = "right" end
+        local best, side = nil, "left"
+        for _, option in ipairs({ "left", "right" }) do
+            local low = card[option].ending and -math.huge or math.huge
+            for _, name in ipairs(Engine.METERS) do
+                low = math.min(low, e.state.meters[name] + ((card[option].effects or {})[name] or 0))
+            end
+            if not best or low > best then best, side = low, option end
         end
         e:choose(side)
     end
